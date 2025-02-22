@@ -3,3 +3,4 @@ elevenlabs
 fal-client
 fastapi
 pydantic
+uvicorn

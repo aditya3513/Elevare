@@ -41,8 +41,3 @@ class LlmConfig:
             config["id"] = "deepseek-r1-distill-llama-70b"
         # return custom model
         return Groq(**config)
-
-
-    
-
-    
