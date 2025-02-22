@@ -1,8 +1,61 @@
 {
-  "hash": "f02a30e4",
+  "hash": "adaa6b72",
   "configHash": "ed3e16ea",
-  "lockfileHash": "dfe8f67c",
-  "browserHash": "190cc171",
-  "optimized": {},
-  "chunks": {}
+  "lockfileHash": "9ca93c47",
+  "browserHash": "984d6ccd",
+  "optimized": {
+    "react/jsx-dev-runtime": {
+      "src": "../../node_modules/.pnpm/react@19.0.0/node_modules/react/jsx-dev-runtime.js",
+      "file": "react_jsx-dev-runtime.js",
+      "fileHash": "ff43252d",
+      "needsInterop": true
+    },
+    "react": {
+      "src": "../../node_modules/.pnpm/react@19.0.0/node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "d17eeb07",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/.pnpm/react-dom@19.0.0_react@19.0.0/node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "96ff570f",
+      "needsInterop": true
+    },
+    "@tanstack/react-router": {
+      "src": "../../node_modules/.pnpm/@tanstack+react-router@1.109.2_react-dom@19.0.0_react@19.0.0__react@19.0.0/node_modules/@tanstack/react-router/dist/esm/index.js",
+      "file": "@tanstack_react-router.js",
+      "fileHash": "d6ba380a",
+      "needsInterop": false
+    },
+    "tldraw": {
+      "src": "../../node_modules/.pnpm/tldraw@3.8.1_@types+react-dom@19.0.4_@types+react@19.0.10__@types+react@19.0.10_react-d_037f09b6795d04fdd571c2a16b18e51b/node_modules/tldraw/dist-esm/index.mjs",
+      "file": "tldraw.js",
+      "fileHash": "dfe5576b",
+      "needsInterop": false
+    },
+    "@tanstack/router-devtools": {
+      "src": "../../node_modules/.pnpm/@tanstack+router-devtools@1.109.2_@tanstack+react-router@1.109.2_react-dom@19.0.0_react_1f35e34bbe4f7b019288665f1d71f83a/node_modules/@tanstack/router-devtools/dist/esm/index.js",
+      "file": "@tanstack_router-devtools.js",
+      "fileHash": "bcffcab8",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-VO6UCDM2": {
+      "file": "chunk-VO6UCDM2.js"
+    },
+    "chunk-K3NYYPUX": {
+      "file": "chunk-K3NYYPUX.js"
+    },
+    "chunk-NZKWRMRY": {
+      "file": "chunk-NZKWRMRY.js"
+    },
+    "chunk-HCKAXUWO": {
+      "file": "chunk-HCKAXUWO.js"
+    },
+    "chunk-4QYC6N4V": {
+      "file": "chunk-4QYC6N4V.js"
+    }
+  }
 }
