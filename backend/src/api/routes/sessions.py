@@ -20,7 +20,7 @@ client = ElevenLabs()
 
 router = APIRouter()
 
-session_storage = llm_config_handler.get_workflow_storage("sessions")
+session_storage = llm_config_handler.get_workflow_storage("lesson_gen")
 
 class SessionRequest(BaseModel):
     topic: str
@@ -56,13 +56,7 @@ async def create_new_session(session_request: SessionRequest):
 @router.websocket("/session/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
     """Handles WebSocket connections and requires a valid session ID."""
-    session_handler = SessionManager(
-        session_id=session_id,
-        storage=session_storage
-
-    )
-    print(session_handler.session_state)
-    is_validated = session_handler.session_state.get("is_validated")
+    # is_validated = session_handler.session_state.get("is_validated")
     # check if session is not initialized or missing topic, reject
     # if not is_validated:
     #     await websocket.close(code=1008)  # Policy violation code
@@ -99,8 +93,8 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 
                 if message_type == "PLAN_LESSONS":
                     topic = data["topic"]
-                    study_guide_resp_iterator: Iterator[RunResponse] = study_guide_handler.run(topic)
-                    async for response in study_guide_resp_iterator:
+                    study_guide_resp_iterator: Iterator[RunResponse] = study_guide_handler.run(topic=topic)
+                    for response in study_guide_resp_iterator:
                         # You might want to serialize the response to JSON or format it as needed
                         if response.event == "AUDIO_FILE":
                             audio_bytes = read_audio_file(response.content)

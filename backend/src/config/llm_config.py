@@ -19,15 +19,14 @@ class LlmConfigs:
         )
     
     def get_workflow_storage(self, table_name: str):
-        if self.__use_local_storage:
-            return SqliteWorkflowStorage(
-                table_name=f"workflow_{table_name}",
+        return SqliteWorkflowStorage(
+                table_name=table_name,
                 db_file="tmp/workflows.db"
             )
-        return PostgresWorkflowStorage(
-            table_name=f"workflow_{table_name}",
-            db_url=self.__pg_db_url
-        )
+        # return PostgresWorkflowStorage(
+        #     table_name=f"workflow_{table_name}",
+        #     db_url=self.__pg_db_url
+        # )
     
     def get_groq_base_model(self, use_slm: bool = False, return_json: bool = False):
         config = {}
