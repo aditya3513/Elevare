@@ -40,6 +40,8 @@
     "@tailwindcss/cli": "^4.0.8",
     "@tailwindcss/vite": "^4.0.8",
     "@tanstack/react-router": "^1.109.2",
+    "@wavesurfer/react": "^1.0.9",
+    "audiomotion-analyzer": "^4.5.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.0.0",
@@ -61,6 +63,7 @@
     "tailwindcss-animate": "^1.0.7",
     "tldraw": "^3.8.1",
     "vaul": "^1.1.2",
+    "wavesurfer.js": "7",
     "zod": "^3.24.2",
     "zustand": "^5.0.3"
   },
