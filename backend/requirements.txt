@@ -4,3 +4,4 @@ fal-client
 fastapi
 pydantic
 uvicorn
+mlx-whisper
