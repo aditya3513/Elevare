@@ -1,9 +1,12 @@
 import os
+from dotenv import load_dotenv
 from agno.storage.agent.postgres import PostgresAgentStorage
 from agno.storage.workflow.postgres import PostgresWorkflowStorage
 from agno.models.groq import Groq
 
-class LlmConfig:
+load_dotenv()
+
+class LlmConfigs:
     def __init__(self):
         self.__pg_db_url = os.getenv("PG_DB_URL")
     
@@ -41,3 +44,6 @@ class LlmConfig:
             config["id"] = "deepseek-r1-distill-llama-70b"
         # return custom model
         return Groq(**config)
+    
+llm_config_handler = LlmConfigs()
+

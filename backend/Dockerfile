@@ -7,6 +7,12 @@ WORKDIR /app
 # Copy the current directory contents into the container at /app
 COPY . .
 
+RUN apt-get update && \
+    apt-get install -y ffmpeg && \
+    # Clean up to reduce image size
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Install the required Python packages
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
