@@ -11,3 +11,4 @@ groq
 psycopg
 psycopg-binary
 psycopg2-binary
+gpt-researcher
