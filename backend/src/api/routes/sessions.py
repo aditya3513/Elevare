@@ -24,11 +24,6 @@ class SessionRequest(BaseModel):
 
 class SessionResponse(BaseModel):
     session_id: str
-    audio_base64: Optional[str] = Field(
-        default=None, 
-        description="Base64 encoded audio string",
-        examples=["data:audio/wav;base64,UklGRiYAAABXQVZFZm10..."]
-    )
 
 @router.post("/session", response_model=SessionResponse)
 async def create_new_session(session_request: SessionRequest):
@@ -40,22 +35,10 @@ async def create_new_session(session_request: SessionRequest):
         storage=session_storage
 
     )
-    session_handler.session_state["initialized"] = True
-    session_handler.session_state["topic"] = session_request.topic
-    confirmation_msg_response = session_handler.run()
-    confirmation_msg = confirmation_msg_response.content
-    session_handler.session_state["confirmation_msg"] = confirmation_msg
-    audio = client.text_to_speech.convert(
-        text=confirmation_msg,
-        voice_id="JBFqnCBsd6RMkjVDRZzb",
-        model_id="eleven_multilingual_v2",
-        output_format="mp3_44100_128",
-    )
-    play(audio)
+    session_handler.session_state['is_validated'] = True
     return SessionResponse(
-        session_id=session_handler.session_id,
-        audio_base64=audio
-        )
+        session_id=session_handler.session_id
+    )
 
 
 @router.websocket("/session/{session_id}")
@@ -66,9 +49,9 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         storage=session_storage
 
     )
-    is_initialized = session_handler.session_state.get("initialized")
+    is_validated = session_handler.session_state.get("is_validated")
     # check if session is not initialized or missing topic, reject
-    if not is_initialized:
+    if not is_validated:
         await websocket.close(code=1008)  # Policy violation code
         return
     
