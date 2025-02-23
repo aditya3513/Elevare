@@ -61,11 +61,12 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         storage=session_storage
 
     )
+    print(session_handler.session_state)
     is_validated = session_handler.session_state.get("is_validated")
     # check if session is not initialized or missing topic, reject
-    if not is_validated:
-        await websocket.close(code=1008)  # Policy violation code
-        return
+    # if not is_validated:
+    #     await websocket.close(code=1008)  # Policy violation code
+    #     return
     
     await websocket.accept()
 
