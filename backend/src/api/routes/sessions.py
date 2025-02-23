@@ -1,13 +1,16 @@
 import uuid
-import time
+import base64
 import json
 import asyncio
 from src.config.llm_config import llm_config_handler
 from src.config.logging_config import logger
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel
+from typing import Iterator
+from agno.workflow import RunResponse
 from src.api.workflows.session_manager import SessionManager
+from src.api.workflows.study_guide_generator import StudyGuideGenerator
+from src.api.workflows.lesson_generator import LessonGenerator
 from dotenv import load_dotenv
 from elevenlabs.client import ElevenLabs
 from elevenlabs import play
@@ -24,6 +27,15 @@ class SessionRequest(BaseModel):
 
 class SessionResponse(BaseModel):
     session_id: str
+
+def read_audio_file(file_path: str):
+    try:
+        with open(file_path, "rb") as f:
+            audio_bytes = f.read()
+        return audio_bytes
+    except Exception as e:
+        logger.error(f"Audio file not readable at path {file_path}. Error: {e}")
+        return None
 
 @router.post("/session", response_model=SessionResponse)
 async def create_new_session(session_request: SessionRequest):
@@ -56,6 +68,17 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         return
     
     await websocket.accept()
+
+    # if session is accepted then initialize lessons and study guide handler
+    study_guide_handler = StudyGuideGenerator(
+        session_id=session_id,
+        storage=session_storage
+    )
+
+    # lesson_gen_handler = LessonGenerator(
+    #     session_id=session_id,
+    #     storage=session_storage
+    # )
     
     while True:
         try:
@@ -73,8 +96,18 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             if isinstance(data, dict) and "type" in data:
                 message_type = data["type"].upper()
 
-                if message_type == "SPEAK":
-                    response = {"type": "RESPONSE", "message": "I am speaking"}
+                if message_type == "PLAN_LESSONS":
+                    topic = data["topic"]
+                    study_guide_resp_iterator: Iterator[RunResponse] = study_guide_handler.run(topic)
+                    async for response in study_guide_resp_iterator:
+                        # You might want to serialize the response to JSON or format it as needed
+                        audio_bytes = read_audio_file(response.content)
+                        encoded_audio = base64.b64encode(audio_bytes).decode("utf-8")
+                        await websocket.send(str(response.content))
+                        await websocket.send_text(json.dumps({
+                            "type": "HEAR_AUDIO", 
+                            "message": encoded_audio
+                        }))
                 else:
                     response = {"type": "ECHO", "message": f"Received: {data}"}
             else:
