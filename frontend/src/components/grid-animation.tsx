@@ -76,49 +76,52 @@ export default function GridAnimation({ isActive = false }: GridAnimationProps) 
       paused: true, // Start paused
     })
 
-    // Phase 1: Initial fade in (0-2s)
-    timelineRef.current.to(allLines, {
-      opacity: 1,
-      duration: 2,
-      stagger: {
-        each: 0.01,
-        from: "random",
-      },
+    // Phase 1: Initial state setup
+    gsap.set(allLines, {
+      opacity: 0,
+      scale: 0.95,
     })
 
-    // Phase 2: Build-up movement (0-2.5s)
+    // Phase 2: Fade in and scale up (0-1.5s)
+    timelineRef.current.to(allLines, {
+      opacity: 1,
+      scale: 1,
+      duration: 1.5,
+      stagger: {
+        each: 0.02,
+        from: "random",
+      },
+      ease: "power3.out"
+    })
+
+    // Phase 3: Movement animation (1-2.5s)
     timelineRef.current.to(
       [...minorVerticalLines, ...majorVerticalLines, leftBorder, rightBorder],
       {
         x: "0%",
-        duration: 2.5,
-        ease: "power3.inOut",
+        duration: 1.5,
+        ease: "power2.inOut",
         stagger: {
           each: 0.03,
-          from: "random",
+          from: "edges",
         },
       },
-      0,
+      "-=1"
     )
 
     timelineRef.current.to(
       [...minorHorizontalLines, ...majorHorizontalLines],
       {
         y: "0%",
-        duration: 2.5,
-        ease: "power3.inOut",
+        duration: 1.5,
+        ease: "power2.inOut",
         stagger: {
           each: 0.03,
-          from: "random",
+          from: "center",
         },
       },
-      0,
+      "<"
     )
-
-    // Set initial state
-    gsap.set(allLines, {
-      opacity: 0,
-    })
 
     // Cleanup function
     return () => {
@@ -135,7 +138,10 @@ export default function GridAnimation({ isActive = false }: GridAnimationProps) 
     if (!timelineRef.current) return
 
     if (isActive) {
-      timelineRef.current.play()
+      // Delay the start of the animation to coordinate with the exit animation
+      setTimeout(() => {
+        timelineRef.current?.play()
+      }, 800)
     } else {
       timelineRef.current.pause(0)
     }

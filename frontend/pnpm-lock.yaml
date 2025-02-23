@@ -98,6 +98,12 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.109.2
         version: 1.109.2(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      '@wavesurfer/react':
+        specifier: ^1.0.9
+        version: 1.0.9(react@19.0.0)(wavesurfer.js@7.9.1)
+      audiomotion-analyzer:
+        specifier: ^4.5.0
+        version: 4.5.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -161,6 +167,9 @@ importers:
       vaul:
         specifier: ^1.1.2
         version: 1.1.2(@types/react-dom@19.0.4(@types/react@19.0.10))(@types/react@19.0.10)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      wavesurfer.js:
+        specifier: '7'
+        version: 7.9.1
       zod:
         specifier: ^3.24.2
         version: 3.24.2
@@ -2032,6 +2041,12 @@ packages:
     peerDependencies:
       vite: ^4 || ^5 || ^6
 
+  '@wavesurfer/react@1.0.9':
+    resolution: {integrity: sha512-HD3x+p48kWITd3tCOA7KG+6zae8btulNjSTdnRmgrtp9/XPzXc61ZCaPgbqT0gioPGhIcvBcpXZAmnhE8lUDBw==}
+    peerDependencies:
+      react: ^18.2.0 || ^19.0.0
+      wavesurfer.js: '>=7.7.14'
+
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
     peerDependencies:
@@ -2063,6 +2078,9 @@ packages:
   aria-hidden@1.2.4:
     resolution: {integrity: sha512-y+CcFFwelSXpLZk/7fMB2mUbGtX9lKycf1MWJ7CaTIERyitVlyQx6C+sxcROU2BAJ24OiZyK+8wj2i8AlBoS3A==}
     engines: {node: '>=10'}
+
+  audiomotion-analyzer@4.5.0:
+    resolution: {integrity: sha512-qnmB8TSbrxYkTbFgsQeeym0Z/suQx4c0jFg9Yh5+gaPw6J4AFLdfFpagdnDbtNEsj6K7BntgsC3bkdut5rxozg==}
 
   babel-dead-code-elimination@1.0.9:
     resolution: {integrity: sha512-JLIhax/xullfInZjtu13UJjaLHDeTzt3vOeomaSUdO/nAMEL/pWC/laKrSvWylXMnVWyL5bpmG9njqBZlUQOdg==}
@@ -3014,6 +3032,9 @@ packages:
         optional: true
       yaml:
         optional: true
+
+  wavesurfer.js@7.9.1:
+    resolution: {integrity: sha512-+pG8X9c9BrfAW8KR54OPzZcAj/57sOL08He/tc6/7Mt6NCX3IfDFwexQxXVTILggGZUOUk7tFKfny32yGrysKA==}
 
   webpack-virtual-modules@0.6.2:
     resolution: {integrity: sha512-66/V2i5hQanC51vBQKPH4aI8NMAcBW59FVBs+rC7eGHupMyfn34q7rZIE+ETlJ+XTevqfUhVVBgSUNSW2flEUQ==}
@@ -4771,6 +4792,11 @@ snapshots:
     transitivePeerDependencies:
       - '@swc/helpers'
 
+  '@wavesurfer/react@1.0.9(react@19.0.0)(wavesurfer.js@7.9.1)':
+    dependencies:
+      react: 19.0.0
+      wavesurfer.js: 7.9.1
+
   acorn-jsx@5.3.2(acorn@8.14.0):
     dependencies:
       acorn: 8.14.0
@@ -4800,6 +4826,8 @@ snapshots:
   aria-hidden@1.2.4:
     dependencies:
       tslib: 2.8.1
+
+  audiomotion-analyzer@4.5.0: {}
 
   babel-dead-code-elimination@1.0.9:
     dependencies:
@@ -5715,6 +5743,8 @@ snapshots:
       jiti: 2.4.2
       lightningcss: 1.29.1
       tsx: 4.19.3
+
+  wavesurfer.js@7.9.1: {}
 
   webpack-virtual-modules@0.6.2: {}
 
