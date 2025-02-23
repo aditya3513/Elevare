@@ -47,50 +47,43 @@ class StudyGuideGenerator(Workflow):
                 return None
 
     def run(self, topic: str) -> Iterator[RunResponse]:
-        audio_gen_handler = AudioGenerator()
-        if not self.session_state.get("topic", None):
-            self.session_state["topic"] = topic
+        # audio_gen_handler = AudioGenerator()
+        if not self.session_state["session"].get("topic", None):
+            self.session_state["session"]["topic"] = topic
         else:
-            topic = self.session_state.get("topic")
+            topic = self.session_state["session"].get("topic")
         
-        if not self.session_state.get("topic_confirmation_msg", None):
+        if not self.session_state["session"].get("topic_confirmation_msg", None):
             confirmation_msg = self.__generate_confirmation_msg(f"""Generate a fiendly message acknowledging:
                 - you are generating study plan for topic: {topic}.""")
-            self.session_state["topic_confirmation_msg"] = confirmation_msg
+            self.session_state["session"]["topic_confirmation_msg"] = confirmation_msg
         else:
-            confirmation_msg = self.session_state["topic_confirmation_msg"]
+            confirmation_msg = self.session_state["session"]["topic_confirmation_msg"]
         
-        if not self.session_state.get("topic_confirmation_audio", None):
-            topic_confirmation_audio = audio_gen_handler.generate_audio(confirmation_msg)
-            self.session_state["topic_confirmation_audio"] = topic_confirmation_audio
-        else:
-            topic_confirmation_audio = self.session_state["topic_confirmation_audio"]
+        # if not self.session_state["session"].get("topic_confirmation_audio", None):
+        #     topic_confirmation_audio = audio_gen_handler.generate_audio(confirmation_msg)
+        #     self.session_state["session"]["topic_confirmation_audio"] = topic_confirmation_audio
+        # else:
+        #     topic_confirmation_audio = self.session_state["session"]["topic_confirmation_audio"]
         # send topic confirmation audio
         yield RunResponse(
-            event="AUDIO_FILE",
-            content=topic_confirmation_audio
+            event="AUDIO_TRANSCRIPT",
+            content=confirmation_msg
         )
 
-        if not self.session_state.get("study_guide", None):
-            # Generate study guide
-            study_guide = self.__generate_study_guide(topic)
-            self.session_state["study_guide"] = study_guide.model_dump_json()
-        else:
-            study_guide = self.session_state["study_guide"]
+        study_guide = self.__generate_study_guide(topic)
         
         yield RunResponse(
             event="STUDY_GUIDE",
-            content=study_guide
+            content=study_guide.dict()
         )
 
         study_guide_confirmation_msg = self.__generate_confirmation_msg(f"""Generate a fiendly message walking user through the study plan:
             - Study Plan: {study_guide}""")
-        self.session_state["study_guide_confirmation_msg"] = study_guide_confirmation_msg
-        study_guide_confirmation_audio = audio_gen_handler.generate_audio(study_guide_confirmation_msg)
-        self.session_state["study_guide_confirmation_audio"] = study_guide_confirmation_audio
+        self.session_state["session"]["study_guide_confirmation_msg"] = study_guide_confirmation_msg
         yield RunResponse(
-            event="AUDIO_FILE",
-            content=study_guide_confirmation_audio
+            event="AUDIO_TRANSCRIPT",
+            content=study_guide_confirmation_msg
         )
 
         yield RunResponse(event=RunEvent.workflow_completed)

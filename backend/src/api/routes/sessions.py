@@ -13,7 +13,7 @@ from src.api.workflows.study_guide_generator import StudyGuideGenerator
 from src.api.workflows.lesson_generator import LessonGenerator
 from dotenv import load_dotenv
 from elevenlabs.client import ElevenLabs
-from elevenlabs import play
+from src.utils import send_json_data, stream_audio
 
 load_dotenv()
 client = ElevenLabs()
@@ -98,7 +98,13 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                         # You might want to serialize the response to JSON or format it as needed
                         if response.event == "AUDIO_FILE":
                             await websocket.send_text(json.dumps({
-                                "type": "HEAR_AUDIO", 
+                                "type": "AUDIO_STREAM", 
+                                "message": response.content
+                            }))
+                        
+                        if response.event == "AUDIO_TRANSCRIPT":
+                            await websocket.send_text(json.dumps({
+                                "type": "AUDIO_TRANSCRIPT", 
                                 "message": response.content
                             }))
                         
@@ -113,7 +119,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 response = {"error": "Invalid message format"}
 
             # Send structured JSON response
-            await websocket.send_text(json.dumps(response))
+            # await websocket.send_text(json.dumps(response))
 
         except WebSocketDisconnect:
             logger.info(f"Session {session_id} disconnected")

@@ -4,6 +4,7 @@ from agno.storage.agent.postgres import PostgresAgentStorage
 from agno.storage.workflow.postgres import PostgresWorkflowStorage
 from agno.storage.workflow.sqlite import SqliteWorkflowStorage
 from agno.models.groq import Groq
+from agno.models.openai import OpenAIChat
 
 load_dotenv()
 
@@ -27,6 +28,16 @@ class LlmConfigs:
         #     table_name=f"workflow_{table_name}",
         #     db_url=self.__pg_db_url
         # )
+    
+    def get_openai_base_model(self, use_slm: bool = True):
+        config = {}
+        # switch models for SLM or LLM
+        if use_slm:
+            config["id"] = "gpt-4o-mini"
+        else:
+            config["id"] = "gpt-4o"
+        # return custom model
+        return OpenAIChat(**config)
     
     def get_groq_base_model(self, use_slm: bool = False, return_json: bool = False):
         config = {}

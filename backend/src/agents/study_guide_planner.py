@@ -37,7 +37,7 @@ class StudyGuide(BaseModel):
     additional_resources: Dict[str, str]
 
 agent = Agent(
-    model=llm_config_handler.get_groq_base_model(),
+    model=llm_config_handler.get_openai_base_model(),
     description="""You are an expert Study Guide Planning agent that specializes in breaking down complex topics into easily digestible content using the Feynman Technique. 
     You analyze the input topic and difficulty level to generate comprehensive study materials that include both self-study components and structured lesson elements, making it suitable for both individual learners and classroom settings."
     """,
