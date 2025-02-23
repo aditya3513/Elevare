@@ -97,11 +97,9 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                     for response in study_guide_resp_iterator:
                         # You might want to serialize the response to JSON or format it as needed
                         if response.event == "AUDIO_FILE":
-                            audio_bytes = read_audio_file(response.content)
-                            encoded_audio = base64.b64encode(audio_bytes).decode("utf-8")
                             await websocket.send_text(json.dumps({
                                 "type": "HEAR_AUDIO", 
-                                "message": encoded_audio
+                                "message": response.content
                             }))
                         
                         if response.event == "STUDY_GUIDE":

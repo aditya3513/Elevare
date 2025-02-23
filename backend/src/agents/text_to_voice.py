@@ -1,4 +1,5 @@
 from agno.agent import Agent
+from agno.models.openai import OpenAIChat
 from src.config.llm_config import llm_config_handler
 from agno.tools.eleven_labs import ElevenLabsTools
 from pydantic import BaseModel, Field
@@ -7,7 +8,7 @@ class AudioFile(BaseModel):
     file_name: str = Field(description="audio file name in your response")
 
 agent = Agent(
-    model=llm_config_handler.get_groq_base_model(),
+    model=OpenAIChat(id="gpt-4o-mini"),
     tools=[
         ElevenLabsTools(
             voice_id="21m00Tcm4TlvDq8ikWAM",
