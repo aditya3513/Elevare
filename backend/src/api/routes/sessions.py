@@ -5,10 +5,15 @@ import asyncio
 from src.config.llm_config import llm_config_handler
 from src.config.logging_config import logger
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from fastapi.responses import Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Optional
 from src.api.workflows.session_manager import SessionManager
+from dotenv import load_dotenv
+from elevenlabs.client import ElevenLabs
+from elevenlabs import play
 
+load_dotenv()
+client = ElevenLabs()
 
 router = APIRouter()
 
@@ -19,7 +24,11 @@ class SessionRequest(BaseModel):
 
 class SessionResponse(BaseModel):
     session_id: str
-    audio_str: str
+    audio_base64: Optional[str] = Field(
+        default=None, 
+        description="Base64 encoded audio string",
+        examples=["data:audio/wav;base64,UklGRiYAAABXQVZFZm10..."]
+    )
 
 @router.post("/session", response_model=SessionResponse)
 async def create_new_session(session_request: SessionRequest):
@@ -33,10 +42,19 @@ async def create_new_session(session_request: SessionRequest):
     )
     session_handler.session_state["initialized"] = True
     session_handler.session_state["topic"] = session_request.topic
-    confirmation_audio = session_handler.run()
+    confirmation_msg_response = session_handler.run()
+    confirmation_msg = confirmation_msg_response.content
+    session_handler.session_state["confirmation_msg"] = confirmation_msg
+    audio = client.text_to_speech.convert(
+        text=confirmation_msg,
+        voice_id="JBFqnCBsd6RMkjVDRZzb",
+        model_id="eleven_multilingual_v2",
+        output_format="mp3_44100_128",
+    )
+    play(audio)
     return SessionResponse(
         session_id=session_handler.session_id,
-        audio_str=confirmation_audio
+        audio_base64=audio
         )
 
 
