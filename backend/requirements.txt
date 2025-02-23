@@ -5,3 +5,8 @@ fastapi
 pydantic
 uvicorn
 mlx-whisper
+sqlalchemy
+groq
+psycopg
+psycopg-binary
+psycopg2-binary
