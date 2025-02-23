@@ -1,104 +1,161 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Tldraw, TLComponents } from 'tldraw'
-import { Mic, Square, Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import GridAnimation from '../components/grid-animation'
 import { Button } from '../components/ui/button'
-import { cn } from '@/lib/utils'
-import 'tldraw/tldraw.css'
+import { AudioRecorder } from '../components/audio-recorder'
+import { useLearningSessionStore } from '../lib/session-ws'
+import { useNavigate } from '@tanstack/react-router'
+
+// Import audio files
+import introEffect from '../assets/audio/intro-effect.mp3'
+import introMessage from '../assets/audio/intro-message.mp3'
+
+// TODO: Replace with actual API URL
+const API_URL = 'http://localhost:8000/api'
 
 export const Route = createFileRoute('/')({
   component: Index,
 })
 
-function AiChatTopZone({ 
-  isListening, 
-  isSpeaking, 
-  onMicToggle, 
-  onStop 
-}: { 
-  isListening: boolean
-  isSpeaking: boolean
-  onMicToggle: () => void
-  onStop: () => void 
-}) {
-  return (
-    <div className="flex items-center justify-center w-full py-2">
-      <div className="flex items-center justify-between w-[320px] h-9 px-4 bg-zinc-900/95 backdrop-blur-sm border border-zinc-800/40 rounded-full shadow-lg">
-        {/* Speaking indicator */}
-        <div className={cn(
-          "flex items-center gap-2 text-sm text-zinc-300",
-          isSpeaking ? "opacity-100" : "opacity-0",
-          "transition-opacity duration-200"
-        )}>
-          <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
-          <span>AI is speaking...</span>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {/* Microphone button */}
-          <Button
-            onClick={onMicToggle}
-            variant={isListening ? "destructive" : "secondary"}
-            size="sm"
-            className={cn(
-              "h-7 w-7 rounded-full",
-              isListening && "bg-red-500/90 hover:bg-red-500/80"
-            )}
-          >
-            <Mic className="w-4 h-4" />
-          </Button>
-
-          {/* Stop button */}
-          <Button
-            onClick={onStop}
-            variant="outline"
-            size="sm"
-            className="h-7 w-7 rounded-full border-zinc-700 bg-zinc-800/50 hover:bg-zinc-800 hover:border-zinc-600"
-          >
-            <Square className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function Index() {
-  const [isListening, setIsListening] = useState(false)
-  const [isSpeaking, setIsSpeaking] = useState(false)
+  const navigate = useNavigate()
+  const [hasStarted, setHasStarted] = useState(false)
+  const [showAudioRecorder, setShowAudioRecorder] = useState(false)
+  const [isInitializing, setIsInitializing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const { connect, startSession, isConnected } = useLearningSessionStore()
+  
+  const effectAudioRef = useRef<HTMLAudioElement | null>(null)
+  const messageAudioRef = useRef<HTMLAudioElement | null>(null)
 
-  const handleMicToggle = () => {
-    setIsListening(!isListening)
-    // Add your microphone logic here
+  // Handle audio playback
+  const playSequence = async () => {
+    try {
+      if (!effectAudioRef.current || !messageAudioRef.current) {
+        effectAudioRef.current = new Audio(introEffect)
+        messageAudioRef.current = new Audio(introMessage)
+      }
+
+      await effectAudioRef.current.play()
+      
+      effectAudioRef.current.onended = () => {
+        messageAudioRef.current?.play()
+          .catch(err => console.error("Error playing message:", err))
+      }
+    } catch (err) {
+      console.error("Error in playSequence:", err)
+    }
   }
 
-  const handleStop = () => {
-    setIsListening(false)
-    setIsSpeaking(false)
-    // Add your stop logic here
+  // Initialize session
+  const initializeSession = async () => {
+    setIsInitializing(true)
+    setError(null)
+
+    try {
+      // Request new session from backend
+      const response = await fetch(`${API_URL}/sessions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create session')
+      }
+
+      const { sessionId } = await response.json()
+
+      // Start WebSocket connection with session ID
+      connect(sessionId)
+      setHasStarted(true)
+      playSequence()
+    } catch (err) {
+      console.error('Failed to initialize session:', err)
+      setError('Failed to start session. Please try again.')
+      setHasStarted(false)
+    } finally {
+      setIsInitializing(false)
+    }
   }
 
-  const components: TLComponents = {
-    TopPanel: () => (
-      <AiChatTopZone
-        isListening={isListening}
-        isSpeaking={isSpeaking}
-        onMicToggle={handleMicToggle}
-        onStop={handleStop}
-      />
-    ),
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (effectAudioRef.current) {
+        effectAudioRef.current.pause()
+        effectAudioRef.current.currentTime = 0
+      }
+      if (messageAudioRef.current) {
+        messageAudioRef.current.pause()
+        messageAudioRef.current.currentTime = 0
+      }
+    }
+  }, [])
+
+  // Handle grid animation completion
+  useEffect(() => {
+    if (hasStarted) {
+      // Wait for grid animation to complete (2.5s based on grid-animation.tsx)
+      const timer = setTimeout(() => {
+        setShowAudioRecorder(true)
+      }, 2500)
+
+      return () => clearTimeout(timer)
+    }
+  }, [hasStarted])
+
+  // Handle successful connection
+  useEffect(() => {
+    if (isConnected && hasStarted) {
+      startSession()
+    }
+  }, [isConnected, hasStarted, startSession])
+
+  if (!hasStarted) {
+    return (
+      <>
+        <GridAnimation isActive={false} />
+        <div className="fixed inset-0 flex flex-col items-center justify-center gap-12 px-6">
+          <h1 className="text-[44px] md:text-[56px] text-[#35312E] font-normal text-center leading-[1.2] max-w-[800px]">
+            What sparks your<br className="hidden md:block" /> curiosity today?
+          </h1>
+          {error && (
+            <div className="text-red-600 dark:text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+          <Button
+            onClick={initializeSession}
+            disabled={isInitializing}
+            className="relative px-8 py-3 text-lg font-medium text-white 
+                     bg-[#2C4975] hover:bg-[#243D64] 
+                     shadow-[0_2px_4px_rgba(44,73,117,0.2)] 
+                     hover:shadow-[0_4px_8px_rgba(44,73,117,0.3)] 
+                     hover:translate-y-[-1px] 
+                     active:translate-y-[1px]
+                     active:shadow-[0_1px_2px_rgba(44,73,117,0.2)]
+                     transition-all duration-200 rounded-lg
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isInitializing ? 'Starting...' : 'Let\'s Explore'}
+          </Button>
+        </div>
+      </>
+    )
   }
 
   return (
-    <div className="fixed inset-0">
-      <Tldraw
-        components={components}
-        inferDarkMode
-        options={{ maxPages: 1 }}
-        onMount={(editor) => {
-          editor.updateInstanceState({ isReadonly: true, isGridMode: true })
-        }}
-      />
-    </div>
+    <>
+      <GridAnimation isActive={hasStarted} />
+      {showAudioRecorder && (
+        <div className="fixed inset-0 flex items-center justify-center">
+          <div className="absolute top-6 left-1/2 -translate-x-1/2">
+            <AudioRecorder onRecordingComplete={() => navigate({ to: '/session' })} />
+          </div>
+        </div>
+      )}
+    </>
   )
 }
