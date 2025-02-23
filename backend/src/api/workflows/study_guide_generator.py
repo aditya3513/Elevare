@@ -93,6 +93,12 @@ class StudyGuideGenerator(Workflow):
             self.session_state["study_guide"] = study_guide.model_dump_json()
         else:
             study_guide = self.session_state["study_guide"]
+        
+        yield RunResponse(
+            event="STUDY_GUIDE",
+            content=study_guide
+        )
+
         study_guide_confirmation_msg = self.__generate_confirmation_msg(f"""Generate a fiendly message walking user through the study plan:
             - Study Plan: {study_guide}""")
         self.session_state["study_guide_confirmation_msg"] = study_guide_confirmation_msg
