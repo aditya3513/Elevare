@@ -35,7 +35,7 @@ async def create_new_session(session_request: SessionRequest):
         storage=session_storage
 
     )
-    session_handler.session_state['is_validated'] = True
+    session_handler.run()
     return SessionResponse(
         session_id=session_handler.session_id
     )

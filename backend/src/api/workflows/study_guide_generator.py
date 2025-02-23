@@ -6,7 +6,7 @@ from src.agents import confirmation_message_generator
 
 AUDIO_FILES_BASE_PATH = "audio_generations"
 
-class LessonGenerator(Workflow):
+class StudyGuideGenerator(Workflow):
     # create base voice agent for feedback
     audio_agent: Agent = text_to_voice.agent
     confirmation_agent: Agent = confirmation_message_generator.agent
