@@ -3,28 +3,56 @@ from src.config.llm_config import llm_config_handler
 from typing import Optional, List
 from pydantic import BaseModel, Field
 
+
 class ContentElement(BaseModel):
-    type: str = Field(..., description="The type of content element (e.g., definition, example, activity).")
+    type: str = Field(
+        ...,
+        description="The type of content element (e.g., definition, example, activity).",
+    )
     content: str = Field(..., description="The actual content of the element.")
+
 
 class SubTopic(BaseModel):
     title: str = Field(..., description="The title of the subtopic.")
-    brief_summary: str = Field(..., description="Brief summary of the current sub topic")
-    key_concepts: List[ContentElement] = Field(..., description="List of key concepts under this subtopic.")
+    brief_summary: str = Field(
+        ..., description="Brief summary of the current sub topic"
+    )
+    key_concepts: List[ContentElement] = Field(
+        ..., description="List of key concepts under this subtopic."
+    )
+
 
 class MainTopic(BaseModel):
     title: str = Field(..., description="The title of the main topic.")
     brief_summary: str = Field(..., description="Brief summary fo the main topic")
-    subtopics: List[SubTopic] = Field(..., description="List of subtopics under this main topic.")
+    subtopics: List[SubTopic] = Field(
+        ..., description="List of subtopics under this main topic."
+    )
+
 
 class LessonPlan(BaseModel):
     title: str = Field(..., description="The overall title of the lesson plan.")
-    description: str = Field(..., description="Description of the lesson and concepts that will be covered in this lesson")
-    learning_objectives: List[str] = Field(..., description="List of learning objectives tailored to the topic")
-    lesson_introduction: str = Field(..., description="Introduction to the lesson including a hook and real-world applications.")
-    main_topics: List[MainTopic] = Field(..., description="A list of main topics covered in the lesson.")
-    analogies: Optional[str] = Field(None, description="Analogies for making it easier for each learning level to grasp the content")
-    real_world_applications: Optional[str] = Field(None, description="Detailed set of real-world applications")
+    description: str = Field(
+        ...,
+        description="Description of the lesson and concepts that will be covered in this lesson",
+    )
+    learning_objectives: List[str] = Field(
+        ..., description="List of learning objectives tailored to the topic"
+    )
+    lesson_introduction: str = Field(
+        ...,
+        description="Introduction to the lesson including a hook and real-world applications.",
+    )
+    main_topics: List[MainTopic] = Field(
+        ..., description="A list of main topics covered in the lesson."
+    )
+    analogies: Optional[str] = Field(
+        None,
+        description="Analogies for making it easier for each learning level to grasp the content",
+    )
+    real_world_applications: Optional[str] = Field(
+        None, description="Detailed set of real-world applications"
+    )
 
 
 agent = Agent(
@@ -80,8 +108,8 @@ agent = Agent(
         - MainTopic objects containing SubTopic objects
         - ContentElement objects for detailed content
         - All fields properly populated according to their descriptions
-        """
+        """,
     ],
     markdown=False,
-    response_model=LessonPlan
+    response_model=LessonPlan,
 )
