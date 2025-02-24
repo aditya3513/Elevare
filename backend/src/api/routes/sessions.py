@@ -109,7 +109,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                             }))
 
                 elif message_type == "PLAN_LESSONS":
-                    topic = data["topic"]
+                    # topic = data["topic"]
                     study_guide_resp_iterator: Iterator[RunResponse] = lessons_planning_handler.run()
                     for response in study_guide_resp_iterator:
                         # You might want to serialize the response to JSON or format it as needed
