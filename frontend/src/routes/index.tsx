@@ -9,8 +9,10 @@ import { useLearningSessionStore } from '../lib/session-ws'
 // import { useMicrophonePermission } from '../hooks/use-microphone-permission'
 import { TextLoop } from '@/components/motion/text-loop'
 import { motion } from 'motion/react'
+import { AudioTranscriptPill } from '../components/audio-transcript-pill'
 import confirmationMessage from '../assets/audio/confirmation-message.mp3'
 import gsap from 'gsap'
+import { WhiteboardEditor } from '../components/whiteboard-editor'
 
 export const Route = createFileRoute('/')({
   component: Index,
@@ -237,101 +239,6 @@ function Index() {
         />
       )}
 
-      {/* Research Content */}
-      {hasSubmitted && (
-        <div className="absolute inset-0 overflow-auto py-8 px-4">
-          <div className="max-w-7xl mx-auto space-y-8">
-            {/* Research Context */}
-            {researchContext && (
-              <div className="bg-white/10 dark:bg-zinc-900/50 backdrop-blur-md rounded-lg shadow-lg p-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-4">Research Summary</h3>
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <h4 className="text-zinc-700 dark:text-zinc-300">{researchContext.query}</h4>
-                  <p>{researchContext.summary}</p>
-                  <ul>
-                    {(researchContext.key_findings || []).map((finding, i) => (
-                      <li key={i}>{finding}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            )}
-
-            {/* Research Sources */}
-            {researchSources && (researchSources.length > 0) && (
-              <div className="bg-white/10 dark:bg-zinc-900/50 backdrop-blur-md rounded-lg shadow-lg p-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-4">Sources</h3>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {(researchSources || []).map((source, i) => (
-                    <div key={i} className="p-4 bg-white/5 rounded-md">
-                      <h4 className="font-medium text-zinc-700 dark:text-zinc-300">{source.title}</h4>
-                      <a href={source.url} className="text-sm text-blue-500 hover:text-blue-400 break-all" target="_blank" rel="noopener noreferrer">
-                        {source.url}
-                      </a>
-                      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{source.snippet}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Research Images */}
-            {researchImages && (researchImages.length > 0) && (
-              <div className="bg-white/10 dark:bg-zinc-900/50 backdrop-blur-md rounded-lg shadow-lg p-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-4">Related Images</h3>
-                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-                  {(researchImages || []).map((image, i) => (
-                    <div key={i} className="relative aspect-video">
-                      <img
-                        src={image.url}
-                        alt={image.alt}
-                        className="absolute inset-0 w-full h-full object-cover rounded-md"
-                      />
-                      <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-xs text-white">
-                        {image.source}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Whiteboard */}
-            {whiteboardItems && (whiteboardItems.length > 0) && (
-              <div className="bg-white/10 dark:bg-zinc-900/50 backdrop-blur-md rounded-lg shadow-lg p-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-4">Lesson Visualization</h3>
-                <div className="relative min-h-[600px] bg-zinc-100 dark:bg-zinc-800/50 rounded-lg">
-                  {(whiteboardItems || []).map((item, i) => (
-                    <div
-                      key={i}
-                      className="absolute bg-white/90 dark:bg-zinc-900/90 rounded-lg shadow-sm p-4"
-                      style={{
-                        left: item.position.x,
-                        top: item.position.y,
-                        width: item.size.width,
-                        height: item.size.height
-                      }}
-                    >
-                      {item.title && <h4 className="font-medium mb-2">{item.title}</h4>}
-                      {item.text && <p className="text-sm">{item.text}</p>}
-                      {item.contents && (
-                        <div className="space-y-2 mt-2">
-                          {(item.contents || []).map((content, j) => (
-                            <div key={j} className={`text-sm ${content.type === 'sticky' ? 'bg-yellow-100/50 dark:bg-yellow-900/20 p-2 rounded' : ''}`}>
-                              {content.text}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Thinking State */}
       {(isResearching || isPlanning) && (
         <motion.div 
@@ -396,9 +303,83 @@ function Index() {
 
       {/* Audio Transcript */}
       {audioTranscript && !isResearching && !isPlanning && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 max-w-xl w-full mx-4 z-50">
-          <div className="bg-white/10 dark:bg-zinc-900/50 backdrop-blur-md rounded-full shadow-lg px-6 py-3 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <p className="text-sm text-center text-zinc-700 dark:text-zinc-300">{audioTranscript}</p>
+        <AudioTranscriptPill 
+          transcript={audioTranscript}
+          onAudioEnd={() => {
+            // Optional: Add any logic you want to execute when audio ends
+            console.log('Audio transcript playback completed')
+          }}
+        />
+      )}
+
+            {/* Research Content */}
+      {hasSubmitted && (
+        <div className="absolute inset-0 overflow-auto py-8 px-4">
+          <div className="max-w-7xl mx-auto space-y-8">
+            {/* Research Context */}
+            {researchContext && (
+              <div className="bg-white/10 dark:bg-zinc-900/50 backdrop-blur-md rounded-lg shadow-lg p-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-4">Research Summary</h3>
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <h4 className="text-zinc-700 dark:text-zinc-300">{researchContext.query}</h4>
+                  <p>{researchContext.summary}</p>
+                  <ul>
+                    {(researchContext.key_findings || []).map((finding, i) => (
+                      <li key={i}>{finding}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Research Sources */}
+            {researchSources && (researchSources.length > 0) && (
+              <div className="bg-white/10 dark:bg-zinc-900/50 backdrop-blur-md rounded-lg shadow-lg p-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-4">Sources</h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {(researchSources || []).map((source, i) => (
+                    <div key={i} className="p-4 bg-white/5 rounded-md">
+                      <h4 className="font-medium text-zinc-700 dark:text-zinc-300">{source.title}</h4>
+                      <a href={source.url} className="text-sm text-blue-500 hover:text-blue-400 break-all" target="_blank" rel="noopener noreferrer">
+                        {source.url}
+                      </a>
+                      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{source.snippet}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Research Images */}
+            {researchImages && (researchImages.length > 0) && (
+              <div className="bg-white/10 dark:bg-zinc-900/50 backdrop-blur-md rounded-lg shadow-lg p-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-4">Related Images</h3>
+                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                  {(researchImages || []).map((image, i) => (
+                    <div key={i} className="relative aspect-video">
+                      <img
+                        src={image.url}
+                        alt={image.alt}
+                        className="absolute inset-0 w-full h-full object-cover rounded-md"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-xs text-white">
+                        {image.source}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Whiteboard */}
+            {whiteboardItems && (whiteboardItems.length > 0) && (
+              <div className="bg-white/10 dark:bg-zinc-900/50 backdrop-blur-md rounded-lg shadow-lg p-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-4">Lesson Visualization</h3>
+                <div className="relative min-h-[600px] bg-zinc-100 dark:bg-zinc-800/50 rounded-lg">
+                  <WhiteboardEditor items={whiteboardItems} isReadOnly={true} />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
