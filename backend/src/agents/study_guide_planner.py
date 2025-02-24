@@ -3,14 +3,12 @@ from src.config.llm_config import llm_config_handler
 from typing import List
 from pydantic import BaseModel
 
-
 class StudyGuide(BaseModel):
     topic: str
     summary: str
     concepts: List[str]
     learning_paths: List[str]
     practice_items: List[str]
-
 
 agent = Agent(
     model=llm_config_handler.get_groq_base_model(),
@@ -38,7 +36,7 @@ agent = Agent(
                 - item 1
                 - item 2..
             ]
-        """,
+        """
     ],
-    markdown=True,
+    markdown=True
 )

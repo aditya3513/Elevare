@@ -7,36 +7,18 @@ from pydantic import BaseModel, Field
 class SubTopic(BaseModel):
     title: str = Field(..., description="The title of the main topic.")
     brief_summary: str = Field(..., description="Brief summary fo the main topic")
-    analogies: Optional[str] = Field(
-        None,
-        description="Analogies for making it easier for each learning level to grasp the content",
-    )
-    real_world_applications: Optional[List[str]] = Field(
-        None, description="Detailed list of real-world applications"
-    )
-
+    analogies: Optional[str] = Field(None, description="Analogies for making it easier for each learning level to grasp the content")
+    real_world_applications: Optional[List[str]] = Field(None, description="Detailed list of real-world applications")
 
 class LessonPlan(BaseModel):
     title: str = Field(..., description="The overall title of the lesson plan.")
-    description: str = Field(
-        ...,
-        description="Description of the lesson and concepts that will be covered in this lesson",
-    )
-    learning_objectives: List[str] = Field(
-        ..., description="List of learning objectives tailored to the topic"
-    )
-    lesson_introduction: str = Field(
-        ...,
-        description="Introduction to the lesson including a hook and real-world applications.",
-    )
-    sub_topics: List[SubTopic] = Field(
-        ..., description="A list of sub topics covered in the lesson."
-    )
-
+    description: str = Field(..., description="Description of the lesson and concepts that will be covered in this lesson")
+    learning_objectives: List[str] = Field(..., description="List of learning objectives tailored to the topic")
+    lesson_introduction: str = Field(..., description="Introduction to the lesson including a hook and real-world applications.")
+    sub_topics: List[SubTopic] = Field(..., description="A list of sub topics covered in the lesson.")
 
 class Lessons(BaseModel):
     lessons: List[LessonPlan]
-
 
 agent = Agent(
     model=llm_config_handler.get_openai_base_model(),
@@ -80,7 +62,7 @@ agent = Agent(
         - Include concrete examples and analogies
         - Create opportunities for hands-on learning
         - Build in methods for students to explain concepts back (key to Feynman Technique)
-        - Incorporate regular comprehension checks""",
+        - Incorporate regular comprehension checks"""
     ],
-    markdown=True,
+    markdown=True
 )
