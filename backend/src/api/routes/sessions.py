@@ -5,10 +5,11 @@ from src.config.logging_config import logger
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from src.api.workflows.session_manager import SessionManager
-from pathlib import Path
-
-# from src.api.workflows.study_guide_generator import StudyGuideGenerator
+from src.api.workflows.study_guide_generator import StudyGuideGenerator
+from src.api.workflows.research_topic import DeepResearcher
 from dotenv import load_dotenv
+from elevenlabs.client import ElevenLabs
+from src.utils import get_researcher, run_report_generation
 
 load_dotenv()
 
@@ -72,9 +73,16 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
     is_receiving_audio = False
     audio_chunks = []
 
-    try:
-        while True:
-            message = await websocket.receive()
+    # if session is accepted then initialize lessons and study guide handler
+    deep_research_handler = DeepResearcher(
+        session_id=session_id,
+        storage=session_storage
+    )
+
+    study_guide_handler = StudyGuideGenerator(
+        session_id=session_id,
+        storage=session_storage
+    )
 
             # Handle text messages
             if message.get("type") == "text":
@@ -180,12 +188,69 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
     except Exception as e:
         logger.error(f"Error in session {session_id}: {e}")
         try:
-            await websocket.send_text(
-                json.dumps({"type": "ERROR", "message": "Internal server error"})
-            )
-        except:
-            pass  # Connection might be closed
-    finally:
-        # Cleanup
-        audio_chunks = []
-        is_receiving_audio = False
+            raw_data = await websocket.receive_text()
+            logger.info(f"Received from {session_id}: {raw_data}")
+
+            # Attempt to parse JSON
+            try:
+                data = json.loads(raw_data)
+            except json.JSONDecodeError:
+                await websocket.send_text(json.dumps({"error": "Invalid JSON format"}))
+                continue
+
+            # Process message type
+            if isinstance(data, dict) and "type" in data:
+                message_type = data["type"].upper()
+
+                if message_type == "RESEARCH_TOPIC":
+                    topic = data["topic"]
+                    researcher = get_researcher(query=topic)
+                    report = await run_report_generation(researcher=researcher)
+                    study_guide_resp_iterator: Iterator[RunResponse] = deep_research_handler.run(
+                        topic=topic,
+                        researcher=researcher,
+                        report=report
+                    )
+                    for response in study_guide_resp_iterator:
+                        # You might want to serialize the response to JSON or format it as needed
+                        if response.event in deep_research_handler.custom_events:
+                            await websocket.send_text(json.dumps({
+                                "type": response.event,
+                                "message": response.content
+                            }))
+
+                if message_type == "PLAN_LESSONS":
+                    topic = data["topic"]
+                    study_guide_resp_iterator: Iterator[RunResponse] = study_guide_handler.run(topic=topic)
+                    for response in study_guide_resp_iterator:
+                        # You might want to serialize the response to JSON or format it as needed
+                        if response.event == "AUDIO_FILE":
+                            await websocket.send_text(json.dumps({
+                                "type": "AUDIO_STREAM", 
+                                "message": response.content
+                            }))
+                        
+                        if response.event == "AUDIO_TRANSCRIPT":
+                            await websocket.send_text(json.dumps({
+                                "type": "AUDIO_TRANSCRIPT", 
+                                "message": response.content
+                            }))
+                        
+                        if response.event == "STUDY_GUIDE":
+                            await websocket.send_text(json.dumps({
+                                "type": "STUDY_GUIDE", 
+                                "message": response.content
+                            }))
+                else:
+                    response = {"type": "ECHO", "message": f"Received: {data}"}
+            else:
+                response = {"error": "Invalid message format"}
+
+            # Send structured JSON response
+            # await websocket.send_text(json.dumps(response))
+
+        except WebSocketDisconnect:
+            logger.info(f"Session {session_id} disconnected")
+            break
+        except Exception as e:
+            logger.error(f"Error in session {session_id}: {e}")
