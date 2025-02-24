@@ -7,6 +7,8 @@ import { useAudioSequence } from '../hooks/use-audio-sequence'
 import { useSessionManager } from '../hooks/use-session-manager'
 import { useLearningSessionStore } from '../lib/session-ws'
 // import { useMicrophonePermission } from '../hooks/use-microphone-permission'
+import { TextLoop } from '@/components/motion/text-loop'
+import { motion } from 'motion/react'
 import confirmationMessage from '../assets/audio/confirmation-message.mp3'
 import gsap from 'gsap'
 
@@ -22,18 +24,21 @@ function Index() {
   const [error, setError] = useState<string | null>(null)
   const [userInput, setUserInput] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [deepResearchResponse, setDeepResearchResponse] = useState<string | null>(null)
-  const [lessonResponse, setLessonResponse] = useState<string | null>(null)
   const [hasSubmitted, setHasSubmitted] = useState(false)
 
   // const { hasMicrophonePermission, requestMicrophonePermission } = useMicrophonePermission()
   const { 
     isInitializing, 
     initializeSession, 
-    planLessons, 
-    sendInitialQuery,
-    deepResearchStatus,
-    lessonPlanStatus 
+    planLessons,
+    researchTopic,
+    audioTranscript,
+    whiteboardItems,
+    researchContext,
+    researchSources,
+    researchImages,
+    isResearching,
+    isPlanning
   } = useSessionManager()
   const { playSequence, stopSequence, messageAudioRef } = useAudioSequence({
     // onMessageEnd: () => setShowAudioRecorder(true),
@@ -42,25 +47,17 @@ function Index() {
   const response = useLearningSessionStore(state => state.response)
   const conversationState = useLearningSessionStore(state => state.conversationState)
 
-  // Handle deep research updates
+  // Handle audio transcript updates
   useEffect(() => {
-    if (deepResearchStatus) {
-      setDeepResearchResponse(deepResearchStatus)
+    if (audioTranscript) {
+      // Play the audio transcript or show it as text
+      console.log('New audio transcript:', audioTranscript)
     }
-  }, [deepResearchStatus])
-
-  // Handle lesson plan updates
-  useEffect(() => {
-    if (lessonPlanStatus) {
-      setLessonResponse(lessonPlanStatus)
-      setIsSubmitting(false)
-    }
-  }, [lessonPlanStatus])
+  }, [audioTranscript])
 
   // Handle response updates
   useEffect(() => {
     if (response && conversationState.status === 'received_response') {
-      setLessonResponse(response)
       setIsSubmitting(false)
     }
   }, [response, conversationState])
@@ -146,9 +143,7 @@ function Index() {
   const handleSubmit = async (text: string) => {
     try {
       setIsSubmitting(true)
-      setLessonResponse(null)
       setShowTextArea(false)
-      setHasSubmitted(true)
       
       // Small pause before playing sound
       await new Promise(resolve => setTimeout(resolve, 300))
@@ -157,23 +152,48 @@ function Index() {
       if (messageAudioRef.current) {
         messageAudioRef.current.src = confirmationMessage
         messageAudioRef.current.volume = 1
-        await messageAudioRef.current.play()
-        // Wait for the audio to finish
-        await new Promise(resolve => {
-          messageAudioRef.current?.addEventListener('ended', resolve, { once: true })
-        })
+        try {
+          await messageAudioRef.current.play()
+          // Wait for the audio to finish
+          await new Promise((resolve, reject) => {
+            const audio = messageAudioRef.current
+            if (!audio) return reject(new Error('Audio element not found'))
+            audio.addEventListener('ended', resolve, { once: true })
+            audio.addEventListener('error', reject, { once: true })
+          })
+          
+          // Only transition UI and start backend calls after audio finishes
+          setHasSubmitted(true)
+          
+          // Only start research and lesson planning after audio finishes
+          researchTopic(text)
+          
+          // Add delay before lesson planning
+          setTimeout(() => {
+            planLessons(text)
+          }, 1000) // Add a small delay between requests
+          
+          // Clear input after everything is done
+          setUserInput('')
+        } catch (error) {
+          console.error('Error playing confirmation sound:', error)
+          // Continue with the requests even if audio fails
+          setHasSubmitted(true)
+          researchTopic(text)
+          setTimeout(() => {
+            planLessons(text)
+          }, 1000)
+          setUserInput('')
+        }
+      } else {
+        // If no audio ref, just proceed with the requests
+        setHasSubmitted(true)
+        researchTopic(text)
+        setTimeout(() => {
+          planLessons(text)
+        }, 1000)
+        setUserInput('')
       }
-
-      // First send the initial query for deep research
-      sendInitialQuery(text)
-      
-      // Then trigger lesson planning
-      setTimeout(() => {
-        planLessons(text)
-      }, 1000) // Add a small delay between requests
-      
-      // Clear input after everything is done
-      setUserInput('')
     } catch (error) {
       console.error('Failed to process message:', error)
       setIsSubmitting(false)
@@ -181,6 +201,23 @@ function Index() {
       setError('Failed to process your request. Please try again.')
     }
   }
+
+  // Define research and planning steps
+  const researchSteps = [
+    'Analyzing research context',
+    'Gathering sources',
+    'Processing visual content',
+    'Synthesizing information',
+    'Building knowledge base'
+  ]
+
+  const planningSteps = [
+    'Preparing lesson structure',
+    'Organizing content',
+    'Creating visualizations',
+    'Optimizing flow',
+    'Finalizing materials'
+  ]
 
   return (
     <div className="relative w-screen h-screen overflow-hidden">
@@ -200,22 +237,161 @@ function Index() {
         />
       )}
 
-      {/* Deep Research Response */}
-      {deepResearchResponse && (
-        <div className="absolute inset-x-0 top-1/4 -translate-y-1/2 max-w-2xl mx-auto px-4 py-6 space-y-4 bg-white/10 dark:bg-zinc-900/50 backdrop-blur-md rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200">Research Results</h3>
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            <div className="whitespace-pre-wrap">{deepResearchResponse}</div>
+      {/* Research Content */}
+      {hasSubmitted && (
+        <div className="absolute inset-0 overflow-auto py-8 px-4">
+          <div className="max-w-7xl mx-auto space-y-8">
+            {/* Research Context */}
+            {researchContext && (
+              <div className="bg-white/10 dark:bg-zinc-900/50 backdrop-blur-md rounded-lg shadow-lg p-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-4">Research Summary</h3>
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <h4 className="text-zinc-700 dark:text-zinc-300">{researchContext.query}</h4>
+                  <p>{researchContext.summary}</p>
+                  <ul>
+                    {(researchContext.key_findings || []).map((finding, i) => (
+                      <li key={i}>{finding}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Research Sources */}
+            {researchSources && (researchSources.length > 0) && (
+              <div className="bg-white/10 dark:bg-zinc-900/50 backdrop-blur-md rounded-lg shadow-lg p-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-4">Sources</h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {(researchSources || []).map((source, i) => (
+                    <div key={i} className="p-4 bg-white/5 rounded-md">
+                      <h4 className="font-medium text-zinc-700 dark:text-zinc-300">{source.title}</h4>
+                      <a href={source.url} className="text-sm text-blue-500 hover:text-blue-400 break-all" target="_blank" rel="noopener noreferrer">
+                        {source.url}
+                      </a>
+                      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{source.snippet}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Research Images */}
+            {researchImages && (researchImages.length > 0) && (
+              <div className="bg-white/10 dark:bg-zinc-900/50 backdrop-blur-md rounded-lg shadow-lg p-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-4">Related Images</h3>
+                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                  {(researchImages || []).map((image, i) => (
+                    <div key={i} className="relative aspect-video">
+                      <img
+                        src={image.url}
+                        alt={image.alt}
+                        className="absolute inset-0 w-full h-full object-cover rounded-md"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-xs text-white">
+                        {image.source}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Whiteboard */}
+            {whiteboardItems && (whiteboardItems.length > 0) && (
+              <div className="bg-white/10 dark:bg-zinc-900/50 backdrop-blur-md rounded-lg shadow-lg p-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-4">Lesson Visualization</h3>
+                <div className="relative min-h-[600px] bg-zinc-100 dark:bg-zinc-800/50 rounded-lg">
+                  {(whiteboardItems || []).map((item, i) => (
+                    <div
+                      key={i}
+                      className="absolute bg-white/90 dark:bg-zinc-900/90 rounded-lg shadow-sm p-4"
+                      style={{
+                        left: item.position.x,
+                        top: item.position.y,
+                        width: item.size.width,
+                        height: item.size.height
+                      }}
+                    >
+                      {item.title && <h4 className="font-medium mb-2">{item.title}</h4>}
+                      {item.text && <p className="text-sm">{item.text}</p>}
+                      {item.contents && (
+                        <div className="space-y-2 mt-2">
+                          {(item.contents || []).map((content, j) => (
+                            <div key={j} className={`text-sm ${content.type === 'sticky' ? 'bg-yellow-100/50 dark:bg-yellow-900/20 p-2 rounded' : ''}`}>
+                              {content.text}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Lesson Response */}
-      {lessonResponse && (
-        <div className="absolute inset-x-0 top-3/4 -translate-y-1/2 max-w-2xl mx-auto px-4 py-6 space-y-4 bg-white/10 dark:bg-zinc-900/50 backdrop-blur-md rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200">Lesson Plan</h3>
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            <div className="whitespace-pre-wrap">{lessonResponse}</div>
+      {/* Thinking State */}
+      {(isResearching || isPlanning) && (
+        <motion.div 
+          className="fixed inset-0 flex items-center justify-center p-4 sm:p-6 md:p-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+        >
+          <motion.div 
+            className="w-full max-w-[500px] bg-white/60 dark:bg-black/40 backdrop-blur-2xl rounded-2xl sm:rounded-3xl 
+                      p-6 sm:p-8 md:p-10 shadow-[0_8px_32px_rgba(34,117,243,0.1)] border border-[#2275F3]/10"
+            initial={{ scale: 0.98, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ 
+              duration: 0.3,
+              ease: "easeOut"
+            }}
+            layout="position"
+          >
+            <motion.div 
+              className="mt-6 text-center font-medium text-base text-[#2275F3]/80 dark:text-[#2275F3]/90"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{ 
+                duration: 0.4,
+                ease: "easeOut" 
+              }}
+            >
+              <motion.span
+                initial={{ opacity: 0.5 }}
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                <TextLoop interval={3}>
+                  {isResearching 
+                    ? researchSteps.map((step) => (
+                        <span key={step}>{step}</span>
+                      ))
+                    : planningSteps.map((step) => (
+                        <span key={step}>{step}</span>
+                      ))
+                  }
+                </TextLoop>
+              </motion.span>
+            </motion.div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Audio Transcript */}
+      {audioTranscript && !isResearching && !isPlanning && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 max-w-xl w-full mx-4 z-50">
+          <div className="bg-white/10 dark:bg-zinc-900/50 backdrop-blur-md rounded-full shadow-lg px-6 py-3 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <p className="text-sm text-center text-zinc-700 dark:text-zinc-300">{audioTranscript}</p>
           </div>
         </div>
       )}
