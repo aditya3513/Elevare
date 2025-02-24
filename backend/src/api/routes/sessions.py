@@ -1,6 +1,6 @@
+import io
 import uuid
 import json
-import asyncio
 from src.config.llm_config import llm_config_handler
 from src.config.logging_config import logger
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -10,19 +10,27 @@ from agno.workflow import RunResponse
 from src.api.workflows.session_manager import SessionManager
 from src.api.workflows.lessons_plan_generator import LessonsPlanGenerator
 from src.api.workflows.research_topic import DeepResearcher
+from src.api.workflows.audio_generator import AudioGenerator
 from dotenv import load_dotenv
-from elevenlabs.client import ElevenLabs
+from fastapi.responses import StreamingResponse
 from src.utils import get_researcher, run_report_generation
 
 load_dotenv()
-client = ElevenLabs()
 
 router = APIRouter()
 
 session_storage = llm_config_handler.get_workflow_storage("lesson_gen")
 
+audio_gen_handler = AudioGenerator()
 class SessionResponse(BaseModel):
     session_id: str
+
+
+class AudiogenRequest(BaseModel):
+    session_id: str
+
+class AudioGenRequest(BaseModel):
+    text: str
 
 @router.post("/session")
 async def create_new_session():
@@ -38,6 +46,16 @@ async def create_new_session():
     return SessionResponse(
         session_id=session_handler.session_id
     )
+
+@router.post("/generate-audio")
+async def generate_audio_endpoint(audio_gen_request: AudioGenRequest):
+    audio_bytes = audio_gen_handler.generate_audio(text=audio_gen_request.text)  # Adjust parameters as needed
+    
+    # Wrap the bytes in a BytesIO stream.
+    audio_stream = io.BytesIO(audio_bytes)
+    
+    # Return the stream as a StreamingResponse with the appropriate media type.
+    return StreamingResponse(audio_stream, media_type="audio/mpeg")
 
 
 @router.websocket("/session/{session_id}")
