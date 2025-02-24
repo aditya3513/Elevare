@@ -192,6 +192,8 @@ class DeepResearcher(Workflow):
         json_report = self.extraction_agent.run(report)
         tl_draw_items = self.__generate_tldraw_items(json_report.content)
 
+        self.session_state["session"]["research"]["parsed_data"] = json_report
+        
         yield RunResponse(
             event="WHITEBOARD_UPDATE",
             content=json.dumps(tl_draw_items)
