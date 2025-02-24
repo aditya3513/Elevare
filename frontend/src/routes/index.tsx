@@ -222,7 +222,7 @@ function Index() {
   return (
     <div className="relative w-screen h-screen overflow-hidden">
       {/* Background */}
-      <GridBackground hasStarted={hasStarted} />
+      <GridBackground hasStarted={hasStarted} hasSubmitted={hasSubmitted} />
 
       {/* Voice Interaction UI */}
       {showVoiceWave && hasStarted && !hasSubmitted && (
@@ -339,34 +339,41 @@ function Index() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
+          transition={{ 
+            duration: 0.6, 
+            ease: "easeInOut",
+            delay: 1.4 // Delay until grid animation completes
+          }}
         >
           <motion.div 
-            className="w-full max-w-[500px] bg-white/60 dark:bg-black/40 backdrop-blur-2xl rounded-2xl sm:rounded-3xl 
-                      p-6 sm:p-8 md:p-10 shadow-[0_8px_32px_rgba(34,117,243,0.1)] border border-[#2275F3]/10"
+            className="w-full max-w-[800px]"
             initial={{ scale: 0.98, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ 
-              duration: 0.3,
+              duration: 0.8,
               ease: "easeOut"
             }}
             layout="position"
           >
             <motion.div 
-              className="mt-6 text-center font-medium text-base text-[#2275F3]/80 dark:text-[#2275F3]/90"
-              initial={{ opacity: 0, y: -10 }}
+              className="text-center font-medium text-[#2275F3]"
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
+              exit={{ opacity: 0, y: -20 }}
               transition={{ 
-                duration: 0.4,
-                ease: "easeOut" 
+                duration: 0.8,
+                ease: "easeOut"
               }}
             >
               <motion.span
+                className="font-(family-name:--font-lora) text-[#2275F3] font-medium text-center leading-[1.2] tracking-[-0.02em] block"
+                style={{
+                  fontSize: 'clamp(32px, 5vw, 64px)',
+                }}
                 initial={{ opacity: 0.5 }}
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{
-                  duration: 1.5,
+                  duration: 2,
                   repeat: Infinity,
                   ease: "easeInOut"
                 }}

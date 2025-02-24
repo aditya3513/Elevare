@@ -3,9 +3,10 @@ import gsap from 'gsap'
 
 interface GridBackgroundProps {
   hasStarted: boolean
+  hasSubmitted?: boolean
 }
 
-export function GridBackground({ hasStarted }: GridBackgroundProps) {
+export function GridBackground({ hasStarted, hasSubmitted = false }: GridBackgroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const timelineRef = useRef<gsap.core.Timeline | null>(null)
 
@@ -16,7 +17,7 @@ export function GridBackground({ hasStarted }: GridBackgroundProps) {
     // Create minor vertical lines (more frequent)
     const minorVerticalLines = Array.from({ length: 40 }).map((_, i) => {
       const line = document.createElement("div")
-      line.className = "absolute top-0 bottom-0 w-px bg-[#BFD2F4]/20 transform -translate-x-full"
+      line.className = "grid-line absolute top-0 bottom-0 w-px bg-[#BFD2F4]/20 transform -translate-x-full"
       line.style.left = `${(i + 1) * (100 / 40)}%`
       containerRef.current?.appendChild(line)
       return line
@@ -25,7 +26,7 @@ export function GridBackground({ hasStarted }: GridBackgroundProps) {
     // Create minor horizontal lines
     const minorHorizontalLines = Array.from({ length: 30 }).map((_, i) => {
       const line = document.createElement("div")
-      line.className = "absolute left-0 right-0 h-px bg-[#BFD2F4]/20 transform -translate-y-full"
+      line.className = "grid-line absolute left-0 right-0 h-px bg-[#BFD2F4]/20 transform -translate-y-full"
       line.style.top = `${(i + 1) * (100 / 30)}%`
       containerRef.current?.appendChild(line)
       return line
@@ -34,7 +35,7 @@ export function GridBackground({ hasStarted }: GridBackgroundProps) {
     // Create major vertical lines
     const majorVerticalLines = Array.from({ length: 5 }).map((_, i) => {
       const line = document.createElement("div")
-      line.className = "absolute top-0 bottom-0 w-px bg-[#BFD2F4]/40 transform -translate-x-full"
+      line.className = "grid-line absolute top-0 bottom-0 w-px bg-[#BFD2F4]/40 transform -translate-x-full"
       line.style.left = `${(i + 1) * (100 / 5)}%`
       containerRef.current?.appendChild(line)
       return line
@@ -43,7 +44,7 @@ export function GridBackground({ hasStarted }: GridBackgroundProps) {
     // Create major horizontal lines
     const majorHorizontalLines = Array.from({ length: 4 }).map((_, i) => {
       const line = document.createElement("div")
-      line.className = "absolute left-0 right-0 h-px bg-[#BFD2F4]/40 transform -translate-y-full"
+      line.className = "grid-line absolute left-0 right-0 h-px bg-[#BFD2F4]/40 transform -translate-y-full"
       line.style.top = `${(i + 1) * (100 / 4)}%`
       containerRef.current?.appendChild(line)
       return line
@@ -113,6 +114,32 @@ export function GridBackground({ hasStarted }: GridBackgroundProps) {
       allLines.forEach(line => line.remove())
     }
   }, [hasStarted])
+
+  // Separate effect for exit animation
+  useEffect(() => {
+    if (!hasSubmitted || !containerRef.current) return
+
+    const allLines = containerRef.current.querySelectorAll('.grid-line')
+    const exitTimeline = gsap.timeline()
+    
+    exitTimeline
+      .to(allLines, {
+        opacity: 0,
+        scale: 1.1,
+        duration: 1.2,
+        ease: "power2.inOut",
+        stagger: {
+          amount: 0.8,
+          from: "random"
+        }
+      })
+      .to('.bg-fade', {
+        opacity: 0,
+        duration: 1,
+        ease: "power2.inOut"
+      }, "-=0.8")
+
+  }, [hasSubmitted])
 
   return (
     <>

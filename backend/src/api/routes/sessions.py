@@ -19,6 +19,7 @@ load_dotenv()
 
 router = APIRouter()
 
+
 session_storage = llm_config_handler.get_workflow_storage("lesson_gen")
 
 audio_gen_handler = AudioGenerator()
@@ -34,6 +35,33 @@ class AudiogenRequest(BaseModel):
 
 class AudioGenRequest(BaseModel):
     text: str
+
+
+async def cleanup_session_resources(
+    session_id: str,
+    deep_research_handler: DeepResearcher,
+    lessons_planning_handler: LessonsPlanGenerator,
+):
+    """
+    Cleanup resources associated with a WebSocket session.
+
+    Args:
+        session_id: The ID of the session to cleanup
+        deep_research_handler: The DeepResearcher instance to cleanup
+        lessons_planning_handler: The LessonsPlanGenerator instance to cleanup
+    """
+    try:
+        # Clean up research handler resources
+        if deep_research_handler:
+            await deep_research_handler.cleanup()
+
+        # Clean up lessons planning handler resources
+        if lessons_planning_handler:
+            await lessons_planning_handler.cleanup()
+
+        logger.info(f"Successfully cleaned up resources for session {session_id}")
+    except Exception as e:
+        logger.error(f"Error during cleanup for session {session_id}: {e}")
 
 
 @router.post("/session")

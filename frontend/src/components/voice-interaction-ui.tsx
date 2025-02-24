@@ -59,7 +59,15 @@ export function VoiceInteractionUI({
       className="fixed inset-0 flex items-center justify-center p-4 sm:p-6 md:p-8"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      exit={{ 
+        opacity: 0,
+        transition: {
+          duration: 0.8,
+          ease: "easeInOut",
+          when: "afterChildren",
+          delay: 0.2
+        }
+      }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
     >
       <motion.div 
@@ -67,6 +75,14 @@ export function VoiceInteractionUI({
                   p-6 sm:p-8 md:p-10 shadow-[0_8px_32px_rgba(34,117,243,0.1)] border border-[#2275F3]/10"
         initial={{ scale: 0.98, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
+        exit={{ 
+          scale: 0.96,
+          opacity: 0,
+          transition: {
+            duration: 0.6,
+            ease: "easeInOut"
+          }
+        }}
         transition={{ 
           duration: 0.3,
           ease: "easeOut"
