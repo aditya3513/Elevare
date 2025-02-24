@@ -18,7 +18,7 @@ class LessonsPlanGenerator(Workflow):
         "WHITEBOARD_RESET",
         "WHITEBOARD_UPDATE"]
     
-    def __generate_whiteboard_state_lessons(lessons_obj: lesson_planner.Lessons) -> List[Dict]:
+    def __generate_whiteboard_state_lessons(self, lessons_obj: lesson_planner.Lessons) -> List[Dict]:
         items = []
         
         # Set initial positions and spacing parameters
@@ -90,17 +90,25 @@ class LessonsPlanGenerator(Workflow):
 
     def run(self) -> Iterator[RunResponse]:
         # init study plan
-        lessons_plan = {}
+        lessons_plan = self.session_state["session"].get("lessons", {})
         # fetch current research data
         research_report = self.session_state["session"]["research"]["report"]
 
-        lessons_plan_md = self.__generate_lessons_plan_md(topic=f"{research_report}")
-        lessons_plan["markdown"] = lessons_plan_md
+        if lessons_plan.get("markdown", None):
+            lessons_plan_md = lessons_plan["markdown"]
+        else:
+            lessons_plan_md = self.__generate_lessons_plan_md(topic=f"{research_report}")
+            lessons_plan["markdown"] = lessons_plan_md
+
+
+
+        if lessons_plan.get("confirmation", None):
+            confirmation_msg = lessons_plan["confirmation"]
+        else:
+            confirmation_msg = self.__generate_confirmation_msg(f"""Generate a fiendly message walking user through the study plan for lessons:
+                {lessons_plan_md}""")
+            lessons_plan["confirmation"] = confirmation_msg
         
-        confirmation_msg = self.__generate_confirmation_msg(f"""Generate a fiendly message walking user through the study plan for lessons:
-            {lessons_plan_md}""")
-        
-        lessons_plan["confirmation"] = confirmation_msg
         yield RunResponse(
             event="AUDIO_TRANSCRIPT",
             content=confirmation_msg
@@ -111,9 +119,12 @@ class LessonsPlanGenerator(Workflow):
             content=json.dumps({})
         )
 
-        # parse report inso json format
-        parsed_lessons = self.extraction_agent.run(lessons_plan_md).content
-        lessons_plan["parsed_data"] = parsed_lessons
+        if lessons_plan.get("parsed_data", None):
+            parsed_lessons = lessons_plan["parsed_data"]
+        else:
+            # parse report inso json format
+            parsed_lessons = self.extraction_agent.run(lessons_plan_md).content
+            lessons_plan["parsed_data"] = parsed_lessons
         
         self.session_state["session"]["lessons"] = lessons_plan
         self.write_to_storage()
