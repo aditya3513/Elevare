@@ -1,3 +1,4 @@
+import io
 import uuid
 import json
 from src.config.llm_config import llm_config_handler
@@ -9,20 +10,30 @@ from agno.workflow import RunResponse
 from src.api.workflows.session_manager import SessionManager
 from src.api.workflows.lessons_plan_generator import LessonsPlanGenerator
 from src.api.workflows.research_topic import DeepResearcher
+from src.api.workflows.audio_generator import AudioGenerator
 from dotenv import load_dotenv
-from elevenlabs.client import ElevenLabs
+from fastapi.responses import StreamingResponse
 from src.utils import get_researcher, run_report_generation
 
 load_dotenv()
-client = ElevenLabs()
 
 router = APIRouter()
 
 session_storage = llm_config_handler.get_workflow_storage("lesson_gen")
 
+audio_gen_handler = AudioGenerator()
+
 
 class SessionResponse(BaseModel):
     session_id: str
+
+
+class AudiogenRequest(BaseModel):
+    session_id: str
+
+
+class AudioGenRequest(BaseModel):
+    text: str
 
 
 @router.post("/session")
@@ -35,36 +46,17 @@ async def create_new_session():
     return SessionResponse(session_id=session_handler.session_id)
 
 
-async def cleanup_session_resources(
-    session_id: str,
-    deep_research_handler: DeepResearcher,
-    lessons_planning_handler: LessonsPlanGenerator,
-):
-    """Cleanup all resources associated with a session."""
-    try:
-        # Log cleanup start
-        logger.info(f"Starting cleanup for session {session_id}")
+@router.post("/generate-audio")
+async def generate_audio_endpoint(audio_gen_request: AudioGenRequest):
+    audio_bytes = audio_gen_handler.generate_audio(
+        text=audio_gen_request.text
+    )  # Adjust parameters as needed
 
-        # Clean up research handler resources
-        if (
-            hasattr(deep_research_handler, "researcher")
-            and deep_research_handler.researcher
-        ):
-            # Stop any ongoing research processes
-            if hasattr(deep_research_handler.researcher, "cleanup"):
-                await deep_research_handler.researcher.cleanup()
+    # Wrap the bytes in a BytesIO stream.
+    audio_stream = io.BytesIO(audio_bytes)
 
-        # Clean up any ongoing lesson planning processes
-        if hasattr(lessons_planning_handler, "cleanup"):
-            await lessons_planning_handler.cleanup()
-
-        # Clean up session storage
-        if session_id in session_storage:
-            del session_storage[session_id]
-
-        logger.info(f"Successfully cleaned up session {session_id}")
-    except Exception as e:
-        logger.error(f"Error during cleanup of session {session_id}: {e}")
+    # Return the stream as a StreamingResponse with the appropriate media type.
+    return StreamingResponse(audio_stream, media_type="audio/mpeg")
 
 
 @router.websocket("/session/{session_id}")
@@ -98,10 +90,14 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             if isinstance(data, dict) and "type" in data:
                 message_type = data["type"].upper()
 
+                research_state = deep_research_handler.get_current_state()
                 if message_type == "RESEARCH_TOPIC":
                     topic = data["topic"]
                     researcher = get_researcher(query=topic)
-                    report = await run_report_generation(researcher=researcher)
+                    if not research_state or research_state["report"]:
+                        report = await run_report_generation(researcher=researcher)
+                    else:
+                        report = research_state["report"]
                     study_guide_resp_iterator: Iterator[RunResponse] = (
                         deep_research_handler.run(
                             topic=topic, researcher=researcher, report=report

@@ -128,6 +128,10 @@ class DeepResearcher(Workflow):
     def __fetch_research_context(self):
         context = self.researcher.get_research_context()
         return context
+    
+    def get_current_state(self):
+        current_research = self.session_state["session"].get("research",  None)
+        return current_research
 
     
     def __generate_confirmation_msg(self, topic: str) -> str:
@@ -137,10 +141,14 @@ class DeepResearcher(Workflow):
         return confirmation_msg_response.content
 
     def run(self, topic: str, researcher: GPTResearcher, report) -> Iterator[RunResponse]:
+        # if sessiond oes not exist end workflow
+        if not self.session_state.get("session", None):
+            yield RunResponse(event=RunEvent.workflow_completed)
+            return
         # init research state
-        current_research = {}
+        current_research = self.session_state["session"].get("research",  {})
         self.researcher = researcher
-
+        
         # init report state
         current_research["report"] = report
         yield RunResponse(
@@ -148,32 +156,46 @@ class DeepResearcher(Workflow):
             content=json.dumps(report)
         )
         
+        if current_research.get("report_summary", None):
+            resport_gen_msg = current_research["report_summary"]
+        else:
+            resport_gen_msg = self.__generate_confirmation_msg(f"Write a short 100 word summary for the report. Report: {report}")
+            current_research["report_summary"] = resport_gen_msg
         # send report summary for voice
-        resport_gen_msg = self.__generate_confirmation_msg(f"Write a short 100 word summary for the report. Report: {report}")
         yield RunResponse(
             event="AUDIO_TRANSCRIPT",
             content=resport_gen_msg
         )
         
         # fetch context
-        context = self.__fetch_research_context()
-        current_research["context"] = context
+        if current_research.get("context", None):
+            context = current_research["context"]
+        else:
+            context = self.__fetch_research_context()
+            current_research["context"] = context
         yield RunResponse(
             event="RESEARCH_CONTEXT",
             content=json.dumps(context)
         )
 
         # fetch sources
-        sources = self.__fetch_sources()
-        current_research["sources"] = sources
+        if current_research.get("sources", None):
+            sources = current_research["sources"]
+        else:
+            sources = self.__fetch_sources()
+            current_research["sources"] = sources
         yield RunResponse(
             event="RESEARCH_SOURCES",
             content=json.dumps(sources)
         )
 
         # fetch images
-        images = self.__fetch_images()
-        current_research["images"] = images
+        if current_research.get("images", None):
+            images = current_research["images"]
+        else:
+            images = self.__fetch_images()
+            current_research["images"] = images
+        
         yield RunResponse(
             event="RESEARCH_IMAGES",
             content=json.dumps(images)
@@ -189,13 +211,16 @@ class DeepResearcher(Workflow):
             content=json.dumps({})
         )
 
-        # parse report inso json format
-        json_report = self.extraction_agent.run(report)
-        tl_draw_items = self.__generate_tldraw_items(json_report.content)
+        if current_research.get("parsed_data", None):
+            json_report = current_research["parsed_data"]
+        else:
+            # parse report inso json format
+            json_report = self.extraction_agent.run(report)
+            self.session_state["session"]["research"]["parsed_data"] = json_report
+            self.write_to_storage()
 
-        self.session_state["session"]["research"]["parsed_data"] = json_report
-        self.write_to_storage()
-        
+        tl_draw_items = self.__generate_tldraw_items()
+
         yield RunResponse(
             event="WHITEBOARD_UPDATE",
             content=json.dumps(tl_draw_items)
