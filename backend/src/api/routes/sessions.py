@@ -24,7 +24,7 @@ session_storage = llm_config_handler.get_workflow_storage("lesson_gen")
 class SessionResponse(BaseModel):
     session_id: str
 
-@router.post("/session", response_model=SessionResponse)
+@router.post("/session")
 async def create_new_session():
     """Creates a new session and returns the session ID."""
     session_id = str(uuid.uuid4())

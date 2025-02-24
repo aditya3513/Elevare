@@ -116,6 +116,7 @@ class LessonsPlanGenerator(Workflow):
         lessons_plan["parsed_data"] = parsed_lessons
         
         self.session_state["session"]["lessons"] = lessons_plan
+        self.write_to_storage()
 
         tl_draw_items = self.__generate_whiteboard_state_lessons(parsed_lessons)
 

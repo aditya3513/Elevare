@@ -182,6 +182,7 @@ class DeepResearcher(Workflow):
         # update the session memory
         self.session_state["session"]["topic"] = topic
         self.session_state["session"]["research"] = current_research
+        self.write_to_storage()
 
         yield RunResponse(
             event="WHITEBOARD_RESET",
@@ -193,6 +194,7 @@ class DeepResearcher(Workflow):
         tl_draw_items = self.__generate_tldraw_items(json_report.content)
 
         self.session_state["session"]["research"]["parsed_data"] = json_report
+        self.write_to_storage()
         
         yield RunResponse(
             event="WHITEBOARD_UPDATE",
