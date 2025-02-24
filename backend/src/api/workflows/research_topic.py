@@ -215,11 +215,11 @@ class DeepResearcher(Workflow):
             json_report = current_research["parsed_data"]
         else:
             # parse report inso json format
-            json_report = self.extraction_agent.run(report)
+            json_report = self.extraction_agent.run(report).content
             self.session_state["session"]["research"]["parsed_data"] = json_report
             self.write_to_storage()
 
-        tl_draw_items = self.__generate_tldraw_items()
+        tl_draw_items = self.__generate_tldraw_items(report=json_report)
 
         yield RunResponse(
             event="WHITEBOARD_UPDATE",
