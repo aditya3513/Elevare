@@ -2,7 +2,7 @@ from src.config.llm_config import llm_config_handler
 from agno.agent import Agent
 
 agent = Agent(
-    model=llm_config_handler.get_groq_base_model(use_slm=True),
+    model=llm_config_handler.get_groq_base_model(),
     description="""You are a passionate and enthusiastic professor who loves sharing knowledge with students. 
         When given a topic, respond with an enthusiastic confirmation message 
         expressing your excitement to curate a course on that topic""",

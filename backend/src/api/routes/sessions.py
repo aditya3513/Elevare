@@ -1,5 +1,4 @@
 import uuid
-import base64
 import json
 import asyncio
 from src.config.llm_config import llm_config_handler
@@ -10,10 +9,10 @@ from typing import Iterator
 from agno.workflow import RunResponse
 from src.api.workflows.session_manager import SessionManager
 from src.api.workflows.study_guide_generator import StudyGuideGenerator
-from src.api.workflows.lesson_generator import LessonGenerator
+from src.api.workflows.research_topic import DeepResearcher
 from dotenv import load_dotenv
 from elevenlabs.client import ElevenLabs
-from src.utils import send_json_data, stream_audio
+from src.utils import get_researcher, run_report_generation
 
 load_dotenv()
 client = ElevenLabs()
@@ -65,6 +64,11 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
     await websocket.accept()
 
     # if session is accepted then initialize lessons and study guide handler
+    deep_research_handler = DeepResearcher(
+        session_id=session_id,
+        storage=session_storage
+    )
+
     study_guide_handler = StudyGuideGenerator(
         session_id=session_id,
         storage=session_storage
@@ -90,6 +94,23 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             # Process message type
             if isinstance(data, dict) and "type" in data:
                 message_type = data["type"].upper()
+
+                if message_type == "RESEARCH_TOPIC":
+                    topic = data["topic"]
+                    researcher = get_researcher(query=topic)
+                    report = await run_report_generation(researcher=researcher)
+                    study_guide_resp_iterator: Iterator[RunResponse] = deep_research_handler.run(
+                        topic=topic,
+                        researcher=researcher,
+                        report=report
+                    )
+                    for response in study_guide_resp_iterator:
+                        # You might want to serialize the response to JSON or format it as needed
+                        if response.event in deep_research_handler.custom_events:
+                            await websocket.send_text(json.dumps({
+                                "type": response.event,
+                                "message": response.content
+                            }))
 
                 if message_type == "PLAN_LESSONS":
                     topic = data["topic"]
@@ -126,4 +147,3 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             break
         except Exception as e:
             logger.error(f"Error in session {session_id}: {e}")
-            await asyncio.sleep(0.1)  # Prevent tight error loop
