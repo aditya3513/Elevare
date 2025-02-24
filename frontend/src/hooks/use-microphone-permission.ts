@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-export const useAudioChat = () => {
+export const useMicrophonePermission = () => {
   const [hasMicrophonePermission, setHasMicrophonePermission] = useState(false)
   const [isRequestingPermission, setIsRequestingPermission] = useState(false)
 
@@ -25,6 +25,7 @@ export const useAudioChat = () => {
   const requestMicrophonePermission = useCallback(async () => {
     try {
       setIsRequestingPermission(true)
+      // Get the media stream
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           channelCount: 1,
@@ -33,7 +34,10 @@ export const useAudioChat = () => {
           noiseSuppression: true,
         } 
       })
-      stream.getTracks().forEach(track => track.stop()) // Stop the test stream
+      
+      // Stop all tracks in the stream immediately after getting permission
+      stream.getTracks().forEach(track => track.stop())
+      
       setHasMicrophonePermission(true)
       return true
     } catch (error) {

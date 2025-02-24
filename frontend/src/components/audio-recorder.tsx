@@ -1,11 +1,12 @@
-import { useAudioChat } from '../hooks/use-audio-chat'
+import { useMicrophonePermission } from '../hooks/use-microphone-permission'
+import { useAudioRecorder } from '../hooks/use-audio-recorder'
+import { useSpeechConversion } from '../hooks/use-speech-conversion'
 import { Button } from './ui/button'
 import { Mic, Square, Loader2 } from 'lucide-react'
-import { useAudioWebSocketStore } from '../lib/audio-ws'
 
 interface AudioRecorderProps {
   isInitialQuery?: boolean
-  onRecordingComplete?: () => void
+  onRecordingComplete?: (text: string) => void
 }
 
 export function AudioRecorder({ isInitialQuery = false, onRecordingComplete }: AudioRecorderProps) {
@@ -13,13 +14,18 @@ export function AudioRecorder({ isInitialQuery = false, onRecordingComplete }: A
     hasMicrophonePermission,
     isRequestingPermission,
     requestMicrophonePermission,
-  } = useAudioChat()
+  } = useMicrophonePermission()
 
   const {
     isRecording,
     startRecording,
     stopRecording,
-  } = useAudioWebSocketStore()
+  } = useAudioRecorder()
+
+  const {
+    convertSpeechToText,
+    convertTextToSpeech,
+  } = useSpeechConversion()
 
   const handleStartRecording = async () => {
     if (!hasMicrophonePermission) {
@@ -29,11 +35,17 @@ export function AudioRecorder({ isInitialQuery = false, onRecordingComplete }: A
     startRecording()
   }
 
-  const handleStopRecording = () => {
-    stopRecording()
-    // The audio WebSocket service will handle sending the audio data
-    // The session WebSocket will receive the transcribed response
-    onRecordingComplete?.()
+  const handleStopRecording = async () => {
+    try {
+      const audioBlob = await stopRecording()
+      if (!audioBlob) return
+
+      const text = await convertSpeechToText(audioBlob)
+      await convertTextToSpeech(text) // Play back the transcribed text
+      onRecordingComplete?.(text)
+    } catch (error) {
+      console.error('Error processing recording:', error)
+    }
   }
 
   const containerClasses = "z-50 flex h-8 items-center justify-between gap-3 bg-white/10 dark:bg-zinc-900/50 backdrop-blur-md border border-black/5 dark:border-white/10 rounded-full shadow-sm px-4 animate-in fade-in slide-in-from-bottom-4 duration-700"
