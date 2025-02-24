@@ -1,15 +1,13 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from './ui/button'
 import { Mic, MicOff, CheckCircle, Loader2 } from 'lucide-react'
 import { useAudioRecorder } from '../hooks/use-audio-recorder'
 import { useMicrophonePermission } from '../hooks/use-microphone-permission'
 import { cn } from '../lib/utils'
 import { useLearningSessionStore } from '../lib/session-ws'
-import { VoiceIndicator } from './voice-indicator'
 
 export function InitialAudioRecorder() {
   const [isMuted, setIsMuted] = useState(false)
-  const responseAudioRef = useRef<HTMLAudioElement | null>(null)
   
   const {
     hasMicrophonePermission,
@@ -19,7 +17,6 @@ export function InitialAudioRecorder() {
 
   const { 
     conversationState, 
-    audioResponse, 
     sendInitialQuery, 
     setConversationState 
   } = useLearningSessionStore()
@@ -33,73 +30,6 @@ export function InitialAudioRecorder() {
   useEffect(() => {
     return cleanup
   }, [cleanup])
-
-  // Handle audio response playback
-  useEffect(() => {
-    if (audioResponse && conversationState.status === 'received_audio_response') {
-      console.log('Preparing to play audio response')
-      
-      // Create audio URL from blob
-      const audioUrl = URL.createObjectURL(audioResponse)
-      
-      // Create new audio element if it doesn't exist
-      if (!responseAudioRef.current) {
-        responseAudioRef.current = new Audio()
-        
-        // Add event listeners for debugging
-        responseAudioRef.current.addEventListener('loadeddata', () => {
-          console.log('Audio response loaded and ready to play')
-        })
-        
-        responseAudioRef.current.addEventListener('play', () => {
-          console.log('Audio response started playing')
-        })
-        
-        responseAudioRef.current.addEventListener('error', (e) => {
-          console.error('Audio response error:', e)
-        })
-      }
-
-      // Set the source and load the audio
-      responseAudioRef.current.src = audioUrl
-      
-      // Set up ended handler
-      const handleEnded = () => {
-        console.log('Audio response finished playing')
-        setConversationState({ status: 'idle' })
-      }
-      
-      responseAudioRef.current.addEventListener('ended', handleEnded)
-
-      // Start playing after a short delay to ensure loading
-      setTimeout(() => {
-        if (responseAudioRef.current) {
-          responseAudioRef.current.play()
-            .then(() => {
-              setConversationState({ status: 'playing_response' })
-            })
-            .catch(err => {
-              console.error("Error playing response:", err)
-              setConversationState({ 
-                status: 'error', 
-                error: 'Failed to play audio response' 
-              })
-            })
-        }
-      }, 100)
-
-      // Cleanup
-      return () => {
-        if (responseAudioRef.current) {
-          responseAudioRef.current.removeEventListener('ended', handleEnded)
-          responseAudioRef.current.pause()
-          responseAudioRef.current.currentTime = 0
-          responseAudioRef.current.src = ''
-        }
-        URL.revokeObjectURL(audioUrl)
-      }
-    }
-  }, [audioResponse, conversationState.status, setConversationState])
 
   // Initialize recording when idle
   useEffect(() => {
@@ -152,14 +82,9 @@ export function InitialAudioRecorder() {
     }
   }
 
-  // Cleanup audio on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (responseAudioRef.current) {
-        responseAudioRef.current.pause()
-        responseAudioRef.current.currentTime = 0
-        responseAudioRef.current.src = ''
-      }
       cleanup()
     }
   }, [])
@@ -174,8 +99,8 @@ export function InitialAudioRecorder() {
         return "Sending your question..."
       case 'waiting_for_response':
         return "Waiting for response..."
-      case 'received_audio_response':
-        return `Received response (${(conversationState.audioSize / 1024).toFixed(1)}KB)...`
+      case 'received_response':
+        return `Received response (${((conversationState.audioSize || 0) / 1024).toFixed(1)}KB)...`
       case 'playing_response':
         return "Playing response..."
       case 'error':
@@ -194,7 +119,7 @@ export function InitialAudioRecorder() {
       case 'sending':
       case 'waiting_for_response':
         return 'bg-[#2275F3] shadow-[0_0_8px_rgba(34,117,243,0.5)] animate-pulse'
-      case 'received_audio_response':
+      case 'received_response':
       case 'playing_response':
         return 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]'
       case 'error':
@@ -240,21 +165,11 @@ export function InitialAudioRecorder() {
 
   const isProcessing = conversationState.status === 'sending' || 
                       conversationState.status === 'waiting_for_response' ||
-                      conversationState.status === 'received_audio_response' ||
+                      conversationState.status === 'received_response' ||
                       conversationState.status === 'playing_response'
 
   return (
     <div className="flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Voice Indicator for Response */}
-      {(conversationState.status === 'playing_response' || conversationState.status === 'received_audio_response') && (
-        <div className="w-full mb-2">
-          <VoiceIndicator 
-            audioElement={responseAudioRef.current || undefined}
-            className="w-full h-16"
-          />
-        </div>
-      )}
-
       {/* Recording status */}
       <div className="flex items-center gap-2">
         <div className={cn("h-2 w-2 rounded-full", getStatusColor())} />
