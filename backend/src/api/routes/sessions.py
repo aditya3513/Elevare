@@ -14,6 +14,7 @@ from src.api.workflows.audio_generator import AudioGenerator
 from dotenv import load_dotenv
 from fastapi.responses import StreamingResponse
 from src.utils import get_researcher, run_report_generation
+from fastapi import HTTPException
 
 load_dotenv()
 
@@ -37,31 +38,31 @@ class AudioGenRequest(BaseModel):
     text: str
 
 
-async def cleanup_session_resources(
-    session_id: str,
-    deep_research_handler: DeepResearcher,
-    lessons_planning_handler: LessonsPlanGenerator,
-):
-    """
-    Cleanup resources associated with a WebSocket session.
+# async def cleanup_session_resources(
+#     session_id: str,
+#     deep_research_handler: DeepResearcher,
+#     lessons_planning_handler: LessonsPlanGenerator,
+# ):
+#     """
+#     Cleanup resources associated with a WebSocket session.
 
-    Args:
-        session_id: The ID of the session to cleanup
-        deep_research_handler: The DeepResearcher instance to cleanup
-        lessons_planning_handler: The LessonsPlanGenerator instance to cleanup
-    """
-    try:
-        # Clean up research handler resources
-        if deep_research_handler:
-            await deep_research_handler.cleanup()
+#     Args:
+#         session_id: The ID of the session to cleanup
+#         deep_research_handler: The DeepResearcher instance to cleanup
+#         lessons_planning_handler: The LessonsPlanGenerator instance to cleanup
+#     """
+#     try:
+#         # Clean up research handler resources
+#         if deep_research_handler:
+#             await deep_research_handler.cleanup()
 
-        # Clean up lessons planning handler resources
-        if lessons_planning_handler:
-            await lessons_planning_handler.cleanup()
+#         # Clean up lessons planning handler resources
+#         if lessons_planning_handler:
+#             await lessons_planning_handler.cleanup()
 
-        logger.info(f"Successfully cleaned up resources for session {session_id}")
-    except Exception as e:
-        logger.error(f"Error during cleanup for session {session_id}: {e}")
+#         logger.info(f"Successfully cleaned up resources for session {session_id}")
+#     except Exception as e:
+#         logger.error(f"Error during cleanup for session {session_id}: {e}")
 
 
 @router.post("/session")
@@ -75,16 +76,19 @@ async def create_new_session():
 
 
 @router.post("/generate-audio")
-async def generate_audio_endpoint(audio_gen_request: AudioGenRequest):
-    audio_bytes = audio_gen_handler.generate_audio(
-        text=audio_gen_request.text
-    )  # Adjust parameters as needed
-
-    # Wrap the bytes in a BytesIO stream.
-    audio_stream = io.BytesIO(audio_bytes)
-
-    # Return the stream as a StreamingResponse with the appropriate media type.
-    return StreamingResponse(audio_stream, media_type="audio/mpeg")
+async def generate_audio_endpoint(request: AudioGenRequest):
+    """Generate audio from text and return as streaming response"""
+    try:
+        audio_bytes = audio_gen_handler.generate_audio(text=request.text)
+        audio_stream = io.BytesIO(audio_bytes)
+        return StreamingResponse(
+            audio_stream,
+            media_type="audio/mpeg",
+            headers={"Content-Disposition": "attachment;filename=audio.mp3"},
+        )
+    except Exception as e:
+        logger.error(f"Error generating audio: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate audio")
 
 
 @router.websocket("/session/{session_id}")
@@ -164,12 +168,12 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 
     except WebSocketDisconnect:
         logger.info(f"Session {session_id} disconnected")
-        await cleanup_session_resources(
-            session_id, deep_research_handler, lessons_planning_handler
-        )
+        # await cleanup_session_resources(
+        #     session_id, deep_research_handler, lessons_planning_handler
+        # )
     except Exception as e:
         logger.error(f"Error in session {session_id}: {e}")
         # Ensure cleanup happens even on error
-        await cleanup_session_resources(
-            session_id, deep_research_handler, lessons_planning_handler
-        )
+        # await cleanup_session_resources(
+        #     session_id, deep_research_handler, lessons_planning_handler
+        # )
