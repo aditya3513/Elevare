@@ -22,13 +22,5 @@ if __name__ == "__main__":
 
     report, context, costs, images, sources = asyncio.run(get_report(query, report_type))
     
-    print("Report:")
-    print(report)
-    print("\nResearch Costs:")
-    print(costs)
-    print("\nNumber of Research Images:")
-    print(images)
-    print(len(images))
-    print("\nNumber of Research Sources:")
-    print(sources)
-    print(len(sources))
+    
+    
