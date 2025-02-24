@@ -122,14 +122,10 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             if isinstance(data, dict) and "type" in data:
                 message_type = data["type"].upper()
 
-                research_state = deep_research_handler.get_current_state()
                 if message_type == "RESEARCH_TOPIC":
                     topic = data["topic"]
                     researcher = get_researcher(query=topic)
-                    if not research_state or research_state["report"]:
-                        report = await run_report_generation(researcher=researcher)
-                    else:
-                        report = research_state["report"]
+                    report = await run_report_generation(researcher=researcher)
                     study_guide_resp_iterator: Iterator[RunResponse] = (
                         deep_research_handler.run(
                             topic=topic, researcher=researcher, report=report
