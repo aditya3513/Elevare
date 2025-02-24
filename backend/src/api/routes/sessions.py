@@ -5,7 +5,7 @@ from src.config.logging_config import logger
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from src.api.workflows.session_manager import SessionManager
-from src.api.workflows.study_guide_generator import StudyGuideGenerator
+from src.api.workflows.lessons_plan_generator import LessonsPlanGenerator
 from src.api.workflows.research_topic import DeepResearcher
 from dotenv import load_dotenv
 from elevenlabs.client import ElevenLabs
@@ -38,6 +38,8 @@ def read_audio_file(file_path: str):
 
 @router.post("/session", response_model=SessionResponse)
 async def create_new_session():
+@router.post("/session")
+async def create_new_session():
     """Creates a new session and returns the session ID."""
     session_id = str(uuid.uuid4())
     session_handler = SessionManager(session_id=session_id, storage=session_storage)
@@ -69,6 +71,7 @@ async def process_audio(audio_data: bytes, session_id: str) -> bytes:
 @router.websocket("/session/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
     """Handles WebSocket connections and requires a valid session ID."""
+    
     await websocket.accept()
     is_receiving_audio = False
     audio_chunks = []
@@ -79,7 +82,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         storage=session_storage
     )
 
-    study_guide_handler = StudyGuideGenerator(
+    lessons_planning_handler = LessonsPlanGenerator(
         session_id=session_id,
         storage=session_storage
     )
@@ -187,6 +190,8 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         logger.info(f"Session {session_id} disconnected")
     except Exception as e:
         logger.error(f"Error in session {session_id}: {e}")
+    
+    while True:
         try:
             raw_data = await websocket.receive_text()
             logger.info(f"Received from {session_id}: {raw_data}")
@@ -219,35 +224,18 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                                 "message": response.content
                             }))
 
-                if message_type == "PLAN_LESSONS":
+                elif message_type == "PLAN_LESSONS":
                     topic = data["topic"]
-                    study_guide_resp_iterator: Iterator[RunResponse] = study_guide_handler.run(topic=topic)
+                    study_guide_resp_iterator: Iterator[RunResponse] = lessons_planning_handler.run()
                     for response in study_guide_resp_iterator:
                         # You might want to serialize the response to JSON or format it as needed
-                        if response.event == "AUDIO_FILE":
+                        if response.event in lessons_planning_handler.custom_events:
                             await websocket.send_text(json.dumps({
-                                "type": "AUDIO_STREAM", 
-                                "message": response.content
-                            }))
-                        
-                        if response.event == "AUDIO_TRANSCRIPT":
-                            await websocket.send_text(json.dumps({
-                                "type": "AUDIO_TRANSCRIPT", 
-                                "message": response.content
-                            }))
-                        
-                        if response.event == "STUDY_GUIDE":
-                            await websocket.send_text(json.dumps({
-                                "type": "STUDY_GUIDE", 
+                                "type": response.event,
                                 "message": response.content
                             }))
                 else:
                     response = {"type": "ECHO", "message": f"Received: {data}"}
-            else:
-                response = {"error": "Invalid message format"}
-
-            # Send structured JSON response
-            # await websocket.send_text(json.dumps(response))
 
         except WebSocketDisconnect:
             logger.info(f"Session {session_id} disconnected")
